@@ -25,6 +25,9 @@ const authSlice = createSlice({
       // Store in localStorage
       localStorage.setItem("user", JSON.stringify(action.payload.user));
       localStorage.setItem("role", action.payload.role);
+      if (action.payload.token) {
+        localStorage.setItem("token", action.payload.token);
+      }
     },
     loginFailure: (state, action) => {
       state.loading = false;
@@ -37,6 +40,7 @@ const authSlice = createSlice({
       state.error = null;
       localStorage.removeItem("user");
       localStorage.removeItem("role");
+      localStorage.removeItem("token");
     },
     restoreSession: (state) => {
       const user = localStorage.getItem("user");

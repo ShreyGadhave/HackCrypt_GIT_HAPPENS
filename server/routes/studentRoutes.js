@@ -1,10 +1,15 @@
 const express = require("express");
 const router = express.Router();
 const { protect } = require("../middleware/authMiddleware");
+const {
+  getStudents,
+  getStudent,
+} = require("../controllers/studentController");
 
-// Placeholder routes - will be implemented later
-router.get("/", protect, (req, res) => {
-  res.json({ success: true, data: [] });
-});
+// Get all students with filters
+router.get("/", protect, getStudents);
+
+// Get single student
+router.get("/:id", protect, getStudent);
 
 module.exports = router;

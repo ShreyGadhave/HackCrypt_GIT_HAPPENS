@@ -19,11 +19,11 @@ const Sessions = () => {
   const [formData, setFormData] = useState({
     subject: "",
     topic: "",
-    description: "",
+    class: "10",
+    section: "A",
     date: "",
-    time: "",
-    duration: 60,
-    room: "",
+    startTime: "",
+    endTime: "",
   });
 
   useEffect(() => {
@@ -49,23 +49,23 @@ const Sessions = () => {
       setEditingSession(session);
       setFormData({
         subject: session.subject,
-        topic: session.topic,
-        description: session.description,
-        date: session.date,
-        time: session.time,
-        duration: session.duration,
-        room: session.room,
+        topic: session.topic || "",
+        class: session.class,
+        section: session.section,
+        date: session.date.split('T')[0],
+        startTime: session.startTime,
+        endTime: session.endTime,
       });
     } else {
       setEditingSession(null);
       setFormData({
         subject: "",
         topic: "",
-        description: "",
+        class: "10",
+        section: "A",
         date: "",
-        time: "",
-        duration: 60,
-        room: "",
+        startTime: "",
+        endTime: "",
       });
     }
     setShowModal(true);
@@ -83,7 +83,7 @@ const Sessions = () => {
       if (editingSession) {
         // Update existing session
         const response = await api.put(
-          `/sessions/${editingSession.id}`,
+          `/sessions/${editingSession._id}`,
           formData
         );
         if (response.success) {
@@ -91,12 +91,7 @@ const Sessions = () => {
         }
       } else {
         // Create new session
-        const response = await api.post("/sessions", {
-          ...formData,
-          class: "Class 10",
-          section: "10 A",
-          teacher: "Current Teacher",
-        });
+        const response = await api.post("/sessions", formData);
         if (response.success) {
           dispatch(addSession(response.data));
         }
@@ -104,6 +99,7 @@ const Sessions = () => {
       handleCloseModal();
     } catch (error) {
       console.error("Error saving session:", error);
+      alert(error?.response?.data?.message || "Error saving session");
     }
   };
 
@@ -116,6 +112,7 @@ const Sessions = () => {
         }
       } catch (error) {
         console.error("Error deleting session:", error);
+        alert(error?.response?.data?.message || "Error deleting session");
       }
     }
   };
@@ -145,10 +142,10 @@ const Sessions = () => {
               <tr>
                 <th>Subject</th>
                 <th>Topic</th>
+                <th>Class</th>
+                <th>Section</th>
                 <th>Date</th>
                 <th>Time</th>
-                <th>Duration</th>
-                <th>Room</th>
                 <th>Status</th>
                 <th>Actions</th>
               </tr>
@@ -168,19 +165,21 @@ const Sessions = () => {
                 </tr>
               ) : (
                 sessions.map((session) => (
-                  <tr key={session.id}>
+                  <tr key={session._id}>
                     <td className="font-medium text-gray-800">
                       {session.subject}
                     </td>
-                    <td>{session.topic}</td>
+                    <td>{session.topic || '-'}</td>
+                    <td>Class {session.class}</td>
+                    <td>Section {session.section}</td>
                     <td>{formatDate(session.date)}</td>
-                    <td>{session.time}</td>
-                    <td>{session.duration} min</td>
-                    <td>{session.room}</td>
+                    <td>{session.startTime} - {session.endTime}</td>
                     <td>
                       <span
                         className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          session.status === "upcoming"
+                          session.status === "scheduled"
+                            ? "bg-blue-100 text-blue-700"
+                            : session.status === "completed"
                             ? "bg-green-100 text-green-700"
                             : "bg-gray-100 text-gray-700"
                         }`}
@@ -197,7 +196,7 @@ const Sessions = () => {
                           <Edit size={16} />
                         </button>
                         <button
-                          onClick={() => handleDelete(session.id)}
+                          onClick={() => handleDelete(session._id)}
                           className="p-1 hover:bg-red-50 rounded text-red-600"
                         >
                           <Trash2 size={16} />
@@ -247,7 +246,7 @@ const Sessions = () => {
 
                 <div className="col-span-2 md:col-span-1">
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Topic *
+                    Topic
                   </label>
                   <input
                     type="text"
@@ -256,23 +255,46 @@ const Sessions = () => {
                       setFormData({ ...formData, topic: e.target.value })
                     }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                    required
                   />
                 </div>
               </div>
 
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description
-                </label>
-                <textarea
-                  value={formData.description}
-                  onChange={(e) =>
-                    setFormData({ ...formData, description: e.target.value })
-                  }
-                  rows="3"
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                />
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Class *
+                  </label>
+                  <select
+                    value={formData.class}
+                    onChange={(e) =>
+                      setFormData({ ...formData, class: e.target.value })
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    required
+                  >
+                    <option value="10">Class 10</option>
+                    <option value="9">Class 9</option>
+                    <option value="8">Class 8</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Section *
+                  </label>
+                  <select
+                    value={formData.section}
+                    onChange={(e) =>
+                      setFormData({ ...formData, section: e.target.value })
+                    }
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    required
+                  >
+                    <option value="A">Section A</option>
+                    <option value="B">Section B</option>
+                    <option value="C">Section C</option>
+                  </select>
+                </div>
               </div>
 
               <div className="grid grid-cols-3 gap-4">
@@ -293,13 +315,13 @@ const Sessions = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Time *
+                    Start Time *
                   </label>
                   <input
                     type="time"
-                    value={formData.time}
+                    value={formData.startTime}
                     onChange={(e) =>
-                      setFormData({ ...formData, time: e.target.value })
+                      setFormData({ ...formData, startTime: e.target.value })
                     }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                     required
@@ -308,38 +330,18 @@ const Sessions = () => {
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Duration (min) *
+                    End Time *
                   </label>
                   <input
-                    type="number"
-                    value={formData.duration}
+                    type="time"
+                    value={formData.endTime}
                     onChange={(e) =>
-                      setFormData({
-                        ...formData,
-                        duration: parseInt(e.target.value),
-                      })
+                      setFormData({ ...formData, endTime: e.target.value })
                     }
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                    min="15"
-                    step="15"
                     required
                   />
                 </div>
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Room
-                </label>
-                <input
-                  type="text"
-                  value={formData.room}
-                  onChange={(e) =>
-                    setFormData({ ...formData, room: e.target.value })
-                  }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
-                  placeholder="e.g. Room 101"
-                />
               </div>
 
               <div className="flex gap-3 pt-4">

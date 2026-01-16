@@ -32,8 +32,12 @@ const Attendance = () => {
   useEffect(() => {
     // Get sessions for the current week for teacher view
     if (!isAdmin && sessions.length > 0) {
-      const todaySessions = sessions.slice(0, 5); // Get first 5 sessions as current week
-      setSelectedWeekSessions(todaySessions);
+      // Filter only completed sessions and sort by date (newest first)
+      const completedSessions = sessions
+        .filter((session) => session.status === 'completed')
+        .sort((a, b) => new Date(b.date) - new Date(a.date))
+        .slice(0, 5); // Get last 5 completed sessions
+      setSelectedWeekSessions(completedSessions);
     }
   }, [sessions, isAdmin]);
 
@@ -41,16 +45,22 @@ const Attendance = () => {
     dispatch(setLoading(true));
     try {
       // Fetch students
-      const studentsRes = await api.get(
-        "/students?class=Class 10&section=10 A"
-      );
+      const studentsRes = await api.get("/students?class=10&section=A");
+      console.log("Students Response:", studentsRes);
       if (studentsRes.success) {
         dispatch(setStudents(studentsRes.data));
       }
 
       // Fetch attendance records
       const attendanceRes = await api.get(
-        `/attendance?class=Class 10&section=10 A&month=${selectedMonth}&year=${selectedYear}`
+        `/attendance?class=10&section=A&month=${selectedMonth}&year=${selectedYear}`
+      );
+      console.log("Attendance Response:", attendanceRes);
+      console.log(
+        "Selected Month:",
+        selectedMonth,
+        "Selected Year:",
+        selectedYear
       );
       if (attendanceRes.success) {
         dispatch(setAttendanceRecords(attendanceRes.data));
@@ -59,6 +69,7 @@ const Attendance = () => {
       // Fetch sessions for teacher view
       if (!isAdmin) {
         const sessionsRes = await api.get("/sessions");
+        console.log("Sessions Response:", sessionsRes);
         if (sessionsRes.success) {
           dispatch(setSessions(sessionsRes.data));
         }
@@ -71,21 +82,64 @@ const Attendance = () => {
   };
 
   const getAttendanceStatus = (studentId, dateString) => {
-    const record = records.find(
-      (r) => r.studentId === studentId && r.date === dateString
-    );
+    console.log("getAttendanceStatus input:", {
+      studentId,
+      dateString,
+      dateStringType: typeof dateString,
+    });
+    const record = records.find((r) => {
+      const recordStudentId = r.student?._id || r.student;
+      const recordDate = r.date
+        ? new Date(r.date).toISOString().split("T")[0]
+        : null;
+      const match = recordStudentId === studentId && recordDate === dateString;
+      if (match) {
+        console.log("MATCH FOUND:", {
+          recordStudentId,
+          studentId,
+          recordDate,
+          dateString,
+          record: r,
+        });
+      }
+      return match;
+    });
+    if (record) {
+      console.log("Returning status:", record.status);
+    } else {
+      console.log("No record found for:", { studentId, dateString });
+    }
     return record?.status || null;
   };
 
   const getSessionAttendanceCount = (studentId, dateString) => {
+    console.log("getSessionAttendanceCount called for:", {
+      studentId,
+      dateString,
+    });
+    console.log("All records:", records);
+
     // Calculate how many sessions student attended on a specific day
-    const dayRecords = records.filter(
-      (r) => r.studentId === studentId && r.date === dateString
-    );
+    const dayRecords = records.filter((r) => {
+      const recordStudentId = r.student?._id || r.student;
+      const recordDate = r.date
+        ? new Date(r.date).toISOString().split("T")[0]
+        : null;
+      return recordStudentId === studentId && recordDate === dateString;
+    });
+
+    console.log("Day records found:", dayRecords);
+
     const presentCount = dayRecords.filter(
       (r) => r.status === "present"
     ).length;
-    const totalSessions = 5; // Assume 5 sessions per day
+    const totalSessions = dayRecords.length > 0 ? dayRecords.length : 0;
+
+    console.log("Count result:", {
+      present: presentCount,
+      total: totalSessions,
+    });
+
     return { present: presentCount, total: totalSessions };
   };
 
@@ -224,7 +278,7 @@ const Attendance = () => {
               <tbody>
                 {students.map((student) => (
                   <tr
-                    key={student.id}
+                    key={student._id}
                     className="border-b border-gray-100 hover:bg-gray-50"
                   >
                     <td className="sticky left-0 bg-white px-4 py-3 text-sm font-medium text-gray-800">
@@ -235,11 +289,11 @@ const Attendance = () => {
                     </td>
                     {weekDays.map((day) => {
                       const status = getAttendanceStatus(
-                        student.id,
+                        student._id,
                         day.dateString
                       );
                       const { present, total } = getSessionAttendanceCount(
-                        student.id,
+                        student._id,
                         day.dateString
                       );
 
@@ -274,14 +328,14 @@ const Attendance = () => {
                   </th>
                   {selectedWeekSessions.map((session) => (
                     <th
-                      key={session.id}
+                      key={session._id}
                       className="px-3 py-3 text-center text-xs font-semibold text-gray-700 border-b-2 border-gray-200 min-w-[120px]"
                     >
                       <div className="font-semibold">{session.subject}</div>
                       <div className="text-gray-500">{session.topic}</div>
                       <div className="flex items-center justify-center gap-1 text-gray-500 mt-1">
                         <Clock size={12} />
-                        <span>{session.time}</span>
+                        <span>{session.startTime}</span>
                       </div>
                     </th>
                   ))}
@@ -290,7 +344,7 @@ const Attendance = () => {
               <tbody>
                 {students.map((student) => (
                   <tr
-                    key={student.id}
+                    key={student._id}
                     className="border-b border-gray-100 hover:bg-gray-50"
                   >
                     <td className="sticky left-0 bg-white px-4 py-3 text-sm font-medium text-gray-800">
@@ -300,13 +354,17 @@ const Attendance = () => {
                       </div>
                     </td>
                     {selectedWeekSessions.map((session) => {
-                      // For simplicity, use session date as identifier
+                      // Convert session date to just the date string (YYYY-MM-DD)
+                      const sessionDateString = session.date 
+                        ? new Date(session.date).toISOString().split('T')[0]
+                        : null;
+                      
                       const status = getAttendanceStatus(
-                        student.id,
-                        session.date
+                        student._id,
+                        sessionDateString
                       );
                       return (
-                        <td key={session.id} className="px-3 py-3 text-center">
+                        <td key={session._id} className="px-3 py-3 text-center">
                           <div className="flex justify-center">
                             <div className="relative group">
                               <button
@@ -328,19 +386,14 @@ const Attendance = () => {
                                       (currentIndex + 1) % statusCycle.length
                                     ];
                                   handleMarkAttendance(
-                                    student.id,
-                                    session.id,
+                                    student._id,
+                                    session._id,
                                     nextStatus
                                   );
                                 }}
                               >
                                 {getStatusLabel(status) || "Mark"}
                               </button>
-
-                              {/* Tooltip */}
-                              <div className="absolute hidden group-hover:block bottom-full left-1/2 transform -translate-x-1/2 mb-2 px-2 py-1 bg-gray-800 text-white text-xs rounded whitespace-nowrap z-20">
-                                Click to mark
-                              </div>
                             </div>
                           </div>
                         </td>
