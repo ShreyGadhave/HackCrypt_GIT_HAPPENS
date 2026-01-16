@@ -191,9 +191,12 @@ Return ONLY valid JSON in this exact format:
             
             # Convert image to base64
             image_b64 = self.image_to_base64(image_path)
+            print("Base 64 run")
+
             
             # Use custom prompt or default
             prompt = custom_prompt or self.DEFAULT_PROMPT
+            print("prompt run")
             
             # Call Groq API with LLaMA-4-Scout vision model
             response = self.client.chat.completions.create(

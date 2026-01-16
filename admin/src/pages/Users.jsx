@@ -30,8 +30,8 @@ const Users = () => {
     name: "",
     email: "",
     rollNo: "",
-    class: "Class 10",
-    section: "10 A",
+    class: "",
+    section: "",
     gender: "Male",
     subject: "Mathematics",
     phoneNumber: "",
@@ -76,8 +76,8 @@ const Users = () => {
       email: "",
       password: "",
       rollNo: "",
-      class: "10",
-      section: "A",
+      class: "",
+      section: "",
       gender: "Male",
       subject: "Mathematics",
       phoneNumber: "",
@@ -95,8 +95,8 @@ const Users = () => {
       email: user.email || "",
       password: "",
       rollNo: user.rollNo || "",
-      class: user.class || "10",
-      section: user.section || "A",
+      class: user.class || "",
+      section: user.section || "",
       gender: user.gender || "Male",
       subject: user.subject || "Mathematics",
       phoneNumber: user.phoneNumber || "",
@@ -544,20 +544,16 @@ const Users = () => {
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Class *
                       </label>
-                      <select
+                      <input
+                        type="text"
                         value={formData.class}
                         onChange={(e) =>
                           setFormData({ ...formData, class: e.target.value })
                         }
                         className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                        placeholder="e.g., 10, 11, 12"
                         required
-                      >
-                        {classes.map((cls) => (
-                          <option key={cls} value={cls}>
-                            {classDisplay[cls]}
-                          </option>
-                        ))}
-                      </select>
+                      />
                     </div>
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
