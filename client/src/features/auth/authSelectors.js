@@ -1,4 +1,4 @@
-import { createSelector } from '@reduxjs/toolkit';
+import { createSelector } from "@reduxjs/toolkit";
 
 export const selectAuthState = (state) => state.auth;
 
@@ -19,12 +19,12 @@ export const selectIsAuthenticated = createSelector(
 
 export const selectIsAdmin = createSelector(
   [selectRole],
-  (role) => role === 'admin'
+  (role) => role === "admin"
 );
 
 export const selectIsTeacher = createSelector(
   [selectRole],
-  (role) => role === 'teacher'
+  (role) => role === "teacher"
 );
 
 export const selectAuthLoading = createSelector(

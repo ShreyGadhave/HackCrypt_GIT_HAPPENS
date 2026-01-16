@@ -1,8 +1,8 @@
-import { configureStore } from '@reduxjs/toolkit';
-import authReducer from '../features/auth/authSlice';
-import attendanceReducer from '../features/attendance/attendanceSlice';
-import sessionsReducer from '../features/sessions/sessionsSlice';
-import filesReducer from '../features/files/filesSlice';
+import { configureStore } from "@reduxjs/toolkit";
+import authReducer from "../features/auth/authSlice";
+import attendanceReducer from "../features/attendance/attendanceSlice";
+import sessionsReducer from "../features/sessions/sessionsSlice";
+import filesReducer from "../features/files/filesSlice";
 
 export const store = configureStore({
   reducer: {

@@ -1,20 +1,20 @@
-import { StrictMode } from 'react';
-import { createRoot } from 'react-dom/client';
-import App from './App.jsx';
-import './styles/globals.css';
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import App from "./App.jsx";
+import "./styles/globals.css";
 
 // Start MSW (Mock Service Worker) in development
 async function enableMocking() {
   if (import.meta.env.DEV) {
-    const { worker } = await import('./mocks/browser');
+    const { worker } = await import("./mocks/browser");
     return worker.start({
-      onUnhandledRequest: 'bypass',
+      onUnhandledRequest: "bypass",
     });
   }
 }
 
 enableMocking().then(() => {
-  createRoot(document.getElementById('root')).render(
+  createRoot(document.getElementById("root")).render(
     <StrictMode>
       <App />
     </StrictMode>

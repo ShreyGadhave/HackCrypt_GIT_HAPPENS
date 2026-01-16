@@ -1,21 +1,21 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
   records: [],
   students: [],
   filters: {
-    class: 'Class 10',
-    section: '10 A',
+    class: "Class 10",
+    section: "10 A",
     month: new Date().getMonth(),
     year: new Date().getFullYear(),
   },
-  selectedDate: new Date().toISOString().split('T')[0],
+  selectedDate: new Date().toISOString().split("T")[0],
   loading: false,
   error: null,
 };
 
 const attendanceSlice = createSlice({
-  name: 'attendance',
+  name: "attendance",
   initialState,
   reducers: {
     setAttendanceRecords: (state, action) => {

@@ -1,4 +1,4 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
   files: [],
@@ -9,7 +9,7 @@ const initialState = {
 };
 
 const filesSlice = createSlice({
-  name: 'files',
+  name: "files",
   initialState,
   reducers: {
     setFiles: (state, action) => {
@@ -23,7 +23,7 @@ const filesSlice = createSlice({
       state.files.unshift(action.payload);
     },
     deleteFile: (state, action) => {
-      state.files = state.files.filter(f => f.id !== action.payload);
+      state.files = state.files.filter((f) => f.id !== action.payload);
     },
     setUploadProgress: (state, action) => {
       state.uploadProgress = action.payload;

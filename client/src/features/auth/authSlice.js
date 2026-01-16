@@ -1,4 +1,4 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
   user: null,
@@ -9,7 +9,7 @@ const initialState = {
 };
 
 const authSlice = createSlice({
-  name: 'auth',
+  name: "auth",
   initialState,
   reducers: {
     loginStart: (state) => {
@@ -23,8 +23,8 @@ const authSlice = createSlice({
       state.role = action.payload.role;
       state.error = null;
       // Store in localStorage
-      localStorage.setItem('user', JSON.stringify(action.payload.user));
-      localStorage.setItem('role', action.payload.role);
+      localStorage.setItem("user", JSON.stringify(action.payload.user));
+      localStorage.setItem("role", action.payload.role);
     },
     loginFailure: (state, action) => {
       state.loading = false;
@@ -35,12 +35,12 @@ const authSlice = createSlice({
       state.role = null;
       state.isAuthenticated = false;
       state.error = null;
-      localStorage.removeItem('user');
-      localStorage.removeItem('role');
+      localStorage.removeItem("user");
+      localStorage.removeItem("role");
     },
     restoreSession: (state) => {
-      const user = localStorage.getItem('user');
-      const role = localStorage.getItem('role');
+      const user = localStorage.getItem("user");
+      const role = localStorage.getItem("role");
       if (user && role) {
         state.user = JSON.parse(user);
         state.role = role;

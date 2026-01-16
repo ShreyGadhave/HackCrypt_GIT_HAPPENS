@@ -1,4 +1,4 @@
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector } from "react-redux";
 
 // Create typed hooks for better development experience
 export const useAppDispatch = () => useDispatch();

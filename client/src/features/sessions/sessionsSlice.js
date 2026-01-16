@@ -1,4 +1,4 @@
-import { createSlice } from '@reduxjs/toolkit';
+import { createSlice } from "@reduxjs/toolkit";
 
 const initialState = {
   sessions: [],
@@ -8,7 +8,7 @@ const initialState = {
 };
 
 const sessionsSlice = createSlice({
-  name: 'sessions',
+  name: "sessions",
   initialState,
   reducers: {
     setSessions: (state, action) => {
@@ -22,13 +22,13 @@ const sessionsSlice = createSlice({
       state.sessions.unshift(action.payload);
     },
     updateSession: (state, action) => {
-      const index = state.sessions.findIndex(s => s.id === action.payload.id);
+      const index = state.sessions.findIndex((s) => s.id === action.payload.id);
       if (index !== -1) {
         state.sessions[index] = action.payload;
       }
     },
     deleteSession: (state, action) => {
-      state.sessions = state.sessions.filter(s => s.id !== action.payload);
+      state.sessions = state.sessions.filter((s) => s.id !== action.payload);
     },
     setLoading: (state, action) => {
       state.loading = action.payload;
