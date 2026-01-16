@@ -29,18 +29,18 @@ const Login = () => {
       const response = await api.post("/auth/login", { email, password });
 
       if (response.success) {
-        localStorage.setItem("token", response.token);
         dispatch(
           loginSuccess({
-            user: response.user,
-            role: response.role,
+            user: response.data,
+            role: response.data.role,
+            token: response.token,
           })
         );
         navigate("/dashboard");
       }
     } catch (err) {
       const message =
-        err.response?.data?.message || "Login failed. Please try again.";
+        err?.message || "Login failed. Please try again.";
       setError(message);
       dispatch(loginFailure(message));
     } finally {

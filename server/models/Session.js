@@ -2,42 +2,34 @@ const mongoose = require("mongoose");
 
 const sessionSchema = new mongoose.Schema(
   {
-    title: {
-      type: String,
-      required: [true, "Please provide session title"],
-      trim: true,
-    },
     subject: {
       type: String,
-      required: true,
+      required: [true, "Please provide subject"],
+      trim: true,
     },
     topic: {
       type: String,
-      required: true,
-    },
-    description: {
-      type: String,
       default: "",
-    },
-    date: {
-      type: Date,
-      required: true,
-    },
-    time: {
-      type: String,
-      required: true,
-    },
-    duration: {
-      type: Number,
-      default: 60, // minutes
     },
     class: {
       type: String,
-      required: true,
+      required: [true, "Please provide class"],
     },
     section: {
       type: String,
-      required: true,
+      required: [true, "Please provide section"],
+    },
+    date: {
+      type: Date,
+      required: [true, "Please provide date"],
+    },
+    startTime: {
+      type: String,
+      required: [true, "Please provide start time"],
+    },
+    endTime: {
+      type: String,
+      required: [true, "Please provide end time"],
     },
     teacher: {
       type: mongoose.Schema.Types.ObjectId,

@@ -1,10 +1,26 @@
 const express = require("express");
 const router = express.Router();
-const { protect } = require("../middleware/authMiddleware");
+const { protect, authorize } = require("../middleware/authMiddleware");
+const {
+  getSessions,
+  getSession,
+  createSession,
+  updateSession,
+  deleteSession,
+  getSessionStats,
+} = require("../controllers/sessionController");
 
-// Placeholder routes - will be implemented later
-router.get("/", protect, (req, res) => {
-  res.json({ success: true, data: [] });
-});
+// Session statistics
+router.get("/stats", protect, getSessionStats);
+
+// CRUD operations
+router.route("/")
+  .get(protect, getSessions)
+  .post(protect, authorize("teacher", "admin"), createSession);
+
+router.route("/:id")
+  .get(protect, getSession)
+  .put(protect, authorize("teacher", "admin"), updateSession)
+  .delete(protect, authorize("teacher", "admin"), deleteSession);
 
 module.exports = router;
