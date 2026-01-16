@@ -1,6 +1,7 @@
 const Attendance = require("../models/Attendance");
 const Student = require("../models/Student");
 const Session = require("../models/Session");
+const jwt = require("jsonwebtoken");
 
 // @desc    Get attendance records with filters
 // @route   GET /api/attendance
@@ -443,6 +444,124 @@ exports.getStudentAttendance = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Error fetching student attendance",
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Mark attendance using QR code
+// @route   POST /api/attendance/mark
+// @access  Private (Student)
+exports.markAttendanceByQR = async (req, res) => {
+  try {
+    const { qrToken, studentId } = req.body;
+
+    // Validate required fields
+    if (!qrToken || !studentId) {
+      return res.status(400).json({
+        success: false,
+        message: "QR token and student ID are required",
+      });
+    }
+
+    // Verify and decode QR JWT token
+    let qrPayload;
+    try {
+      qrPayload = jwt.verify(qrToken, process.env.JWT_SECRET);
+    } catch (error) {
+      if (error.name === "TokenExpiredError") {
+        return res.status(400).json({
+          success: false,
+          message: "QR code has expired. Session has ended.",
+        });
+      }
+      return res.status(400).json({
+        success: false,
+        message: "Invalid QR code",
+      });
+    }
+
+    // Extract session details from QR payload
+    const { sessionId } = qrPayload;
+
+    // Verify session exists and is active
+    const session = await Session.findById(sessionId);
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        message: "Session not found",
+      });
+    }
+
+    if (session.status === "cancelled") {
+      return res.status(400).json({
+        success: false,
+        message: "Session has been cancelled",
+      });
+    }
+
+    if (session.status === "completed") {
+      return res.status(400).json({
+        success: false,
+        message: "Session has already been completed",
+      });
+    }
+
+    // Verify student exists
+    const student = await Student.findById(studentId);
+    if (!student) {
+      return res.status(404).json({
+        success: false,
+        message: "Student not found",
+      });
+    }
+
+    // Verify student belongs to the session's class and section
+    if (student.class !== session.class || student.section !== session.section) {
+      return res.status(403).json({
+        success: false,
+        message: "Student is not enrolled in this class/section",
+      });
+    }
+
+    // Check if attendance already marked for this session
+    const existingAttendance = await Attendance.findOne({
+      student: studentId,
+      session: sessionId,
+    });
+
+    if (existingAttendance) {
+      return res.status(400).json({
+        success: false,
+        message: "Attendance already marked for this session",
+      });
+    }
+
+    // Create attendance record
+    const attendance = await Attendance.create({
+      student: studentId,
+      session: sessionId,
+      date: session.date,
+      status: "present",
+      markedBy: session.teacher,
+      remarks: "Marked via QR code",
+    });
+
+    const populatedAttendance = await Attendance.findById(attendance._id)
+      .populate("student", "name rollNo class section")
+      .populate("session", "subject topic date startTime endTime")
+      .populate("markedBy", "name email");
+
+    res.status(201).json({
+      success: true,
+      message: "Attendance marked successfully",
+      data: populatedAttendance,
+    });
+  } catch (error) {
+    console.error("Error marking attendance:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error marking attendance",
       error: error.message,
     });
   }

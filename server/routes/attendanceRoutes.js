@@ -7,6 +7,7 @@ const {
   getDayWiseSummary,
   getSessionWiseSummary,
   getStudentAttendance,
+  markAttendanceByQR,
 } = require("../controllers/attendanceController");
 
 // Statistics and summaries
@@ -19,5 +20,8 @@ router.get("/student/:studentId", protect, getStudentAttendance);
 
 // General attendance records
 router.get("/", protect, getAttendanceRecords);
+
+// Mark attendance using QR code
+router.post("/mark", protect, markAttendanceByQR);
 
 module.exports = router;
