@@ -34,7 +34,7 @@ const Attendance = () => {
     if (!isAdmin && sessions.length > 0) {
       // Filter only completed sessions and sort by date (newest first)
       const completedSessions = sessions
-        .filter((session) => session.status === 'completed')
+        .filter((session) => session.status === "completed")
         .sort((a, b) => new Date(b.date) - new Date(a.date))
         .slice(0, 5); // Get last 5 completed sessions
       setSelectedWeekSessions(completedSessions);
@@ -355,10 +355,10 @@ const Attendance = () => {
                     </td>
                     {selectedWeekSessions.map((session) => {
                       // Convert session date to just the date string (YYYY-MM-DD)
-                      const sessionDateString = session.date 
-                        ? new Date(session.date).toISOString().split('T')[0]
+                      const sessionDateString = session.date
+                        ? new Date(session.date).toISOString().split("T")[0]
                         : null;
-                      
+
                       const status = getAttendanceStatus(
                         student._id,
                         sessionDateString

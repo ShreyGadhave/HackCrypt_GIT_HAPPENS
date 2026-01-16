@@ -6,7 +6,14 @@ const Attendance = require("../models/Attendance");
 // @access  Private
 exports.getSessions = async (req, res) => {
   try {
-    const { teacher, class: className, section, status, startDate, endDate } = req.query;
+    const {
+      teacher,
+      class: className,
+      section,
+      status,
+      startDate,
+      endDate,
+    } = req.query;
 
     // Build filter object
     const filter = {};
@@ -96,7 +103,15 @@ exports.getSession = async (req, res) => {
 // @access  Private (Teacher/Admin)
 exports.createSession = async (req, res) => {
   try {
-    const { class: className, section, subject, date, startTime, endTime, topic } = req.body;
+    const {
+      class: className,
+      section,
+      subject,
+      date,
+      startTime,
+      endTime,
+      topic,
+    } = req.body;
 
     // Validation
     if (!className || !section || !subject || !date || !startTime || !endTime) {

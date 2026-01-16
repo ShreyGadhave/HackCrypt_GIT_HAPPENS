@@ -14,11 +14,13 @@ const {
 router.get("/stats", protect, getSessionStats);
 
 // CRUD operations
-router.route("/")
+router
+  .route("/")
   .get(protect, getSessions)
   .post(protect, authorize("teacher", "admin"), createSession);
 
-router.route("/:id")
+router
+  .route("/:id")
   .get(protect, getSession)
   .put(protect, authorize("teacher", "admin"), updateSession)
   .delete(protect, authorize("teacher", "admin"), deleteSession);
