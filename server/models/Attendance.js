@@ -1,10 +1,10 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const attendanceSchema = new mongoose.Schema(
   {
     student: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Student',
+      ref: "Student",
       required: true,
     },
     date: {
@@ -13,21 +13,21 @@ const attendanceSchema = new mongoose.Schema(
     },
     status: {
       type: String,
-      enum: ['present', 'absent', 'leave', 'holiday'],
+      enum: ["present", "absent", "leave", "holiday"],
       required: true,
     },
     session: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'Session',
+      ref: "Session",
     },
     markedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       required: true,
     },
     remarks: {
       type: String,
-      default: '',
+      default: "",
     },
   },
   {
@@ -38,4 +38,4 @@ const attendanceSchema = new mongoose.Schema(
 // Create compound index to prevent duplicate attendance entries
 attendanceSchema.index({ student: 1, date: 1, session: 1 }, { unique: true });
 
-module.exports = mongoose.model('Attendance', attendanceSchema);
+module.exports = mongoose.model("Attendance", attendanceSchema);

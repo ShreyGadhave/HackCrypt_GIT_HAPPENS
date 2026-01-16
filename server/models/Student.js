@@ -1,28 +1,28 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const studentSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, 'Please provide student name'],
+      required: [true, "Please provide student name"],
       trim: true,
     },
     rollNo: {
       type: String,
-      required: [true, 'Please provide roll number'],
+      required: [true, "Please provide roll number"],
       unique: true,
     },
     class: {
       type: String,
-      required: [true, 'Please provide class'],
+      required: [true, "Please provide class"],
     },
     section: {
       type: String,
-      required: [true, 'Please provide section'],
+      required: [true, "Please provide section"],
     },
     gender: {
       type: String,
-      enum: ['Male', 'Female', 'Other'],
+      enum: ["Male", "Female", "Other"],
       required: true,
     },
     dateOfBirth: {
@@ -30,15 +30,15 @@ const studentSchema = new mongoose.Schema(
     },
     parentName: {
       type: String,
-      default: '',
+      default: "",
     },
     parentPhone: {
       type: String,
-      default: '',
+      default: "",
     },
     address: {
       type: String,
-      default: '',
+      default: "",
     },
     isActive: {
       type: Boolean,
@@ -50,4 +50,4 @@ const studentSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model('Student', studentSchema);
+module.exports = mongoose.model("Student", studentSchema);

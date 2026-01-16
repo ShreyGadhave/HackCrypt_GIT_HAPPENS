@@ -56,11 +56,13 @@ server/
 ## Installation
 
 1. Install dependencies:
+
 ```bash
 npm install
 ```
 
 2. Configure environment variables:
+
    - Copy `.env` and update values
    - Set MongoDB URI
    - Set JWT secret
@@ -70,11 +72,13 @@ npm install
 ## Usage
 
 ### Development Mode
+
 ```bash
 npm run dev
 ```
 
 ### Production Mode
+
 ```bash
 npm start
 ```
@@ -95,40 +99,51 @@ CLIENT_URL=http://localhost:5173
 ## API Endpoints
 
 ### Authentication
+
 - `POST /api/auth/register` - Register new user
 - `POST /api/auth/login` - Login user
 - `GET /api/auth/me` - Get current user (Protected)
 
 ### Users (Admin only)
+
 - `GET /api/users` - Get all users
 
 ### Students
+
 - `GET /api/students` - Get all students
 
 ### Attendance
+
 - `GET /api/attendance` - Get attendance records
 
 ### Sessions
+
 - `GET /api/sessions` - Get all sessions
 
 ### Files
+
 - `GET /api/files` - Get all files
 
 ## Models
 
 ### User
+
 - name, email, password, role (admin/teacher), subject, phoneNumber
 
 ### Student
+
 - name, rollNo, class, section, gender, dateOfBirth, parentInfo
 
 ### Attendance
+
 - student, date, status, session, markedBy, remarks
 
 ### Session
+
 - title, subject, topic, date, time, duration, class, teacher
 
 ### File
+
 - name, description, category, subject, fileUrl, uploadedBy
 
 ## Security Features

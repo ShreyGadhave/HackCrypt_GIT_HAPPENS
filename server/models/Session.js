@@ -1,10 +1,10 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const sessionSchema = new mongoose.Schema(
   {
     title: {
       type: String,
-      required: [true, 'Please provide session title'],
+      required: [true, "Please provide session title"],
       trim: true,
     },
     subject: {
@@ -17,7 +17,7 @@ const sessionSchema = new mongoose.Schema(
     },
     description: {
       type: String,
-      default: '',
+      default: "",
     },
     date: {
       type: Date,
@@ -41,13 +41,13 @@ const sessionSchema = new mongoose.Schema(
     },
     teacher: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       required: true,
     },
     status: {
       type: String,
-      enum: ['scheduled', 'ongoing', 'completed', 'cancelled'],
-      default: 'scheduled',
+      enum: ["scheduled", "ongoing", "completed", "cancelled"],
+      default: "scheduled",
     },
   },
   {
@@ -55,4 +55,4 @@ const sessionSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model('Session', sessionSchema);
+module.exports = mongoose.model("Session", sessionSchema);

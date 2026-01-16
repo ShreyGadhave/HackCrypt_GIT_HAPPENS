@@ -1,5 +1,5 @@
-const User = require('../models/User');
-const { generateToken } = require('../utils/tokenUtils');
+const User = require("../models/User");
+const { generateToken } = require("../utils/tokenUtils");
 
 // @desc    Register user
 // @route   POST /api/auth/register
@@ -14,7 +14,7 @@ exports.register = async (req, res) => {
     if (userExists) {
       return res.status(400).json({
         success: false,
-        message: 'User already exists',
+        message: "User already exists",
       });
     }
 
@@ -23,7 +23,7 @@ exports.register = async (req, res) => {
       name,
       email,
       password,
-      role: role || 'teacher',
+      role: role || "teacher",
       subject,
       phoneNumber,
     });
@@ -62,17 +62,17 @@ exports.login = async (req, res) => {
     if (!email || !password) {
       return res.status(400).json({
         success: false,
-        message: 'Please provide email and password',
+        message: "Please provide email and password",
       });
     }
 
     // Check for user
-    const user = await User.findOne({ email }).select('+password');
+    const user = await User.findOne({ email }).select("+password");
 
     if (!user) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid credentials',
+        message: "Invalid credentials",
       });
     }
 
@@ -82,7 +82,7 @@ exports.login = async (req, res) => {
     if (!isMatch) {
       return res.status(401).json({
         success: false,
-        message: 'Invalid credentials',
+        message: "Invalid credentials",
       });
     }
 

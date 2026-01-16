@@ -1,29 +1,29 @@
-const mongoose = require('mongoose');
+const mongoose = require("mongoose");
 
 const fileSchema = new mongoose.Schema(
   {
     name: {
       type: String,
-      required: [true, 'Please provide file name'],
+      required: [true, "Please provide file name"],
       trim: true,
     },
     description: {
       type: String,
-      default: '',
+      default: "",
     },
     category: {
       type: String,
       enum: [
-        'Assignment',
-        'Notes',
-        'Study Material',
-        'Question Paper',
-        'Solution',
-        'Notice',
-        'Circular',
-        'Policy',
-        'Event',
-        'Announcement',
+        "Assignment",
+        "Notes",
+        "Study Material",
+        "Question Paper",
+        "Solution",
+        "Notice",
+        "Circular",
+        "Policy",
+        "Event",
+        "Announcement",
       ],
       required: true,
     },
@@ -51,7 +51,7 @@ const fileSchema = new mongoose.Schema(
     },
     uploadedBy: {
       type: mongoose.Schema.Types.ObjectId,
-      ref: 'User',
+      ref: "User",
       required: true,
     },
     downloads: {
@@ -64,4 +64,4 @@ const fileSchema = new mongoose.Schema(
   }
 );
 
-module.exports = mongoose.model('File', fileSchema);
+module.exports = mongoose.model("File", fileSchema);
