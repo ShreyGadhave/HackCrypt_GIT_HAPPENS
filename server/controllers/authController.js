@@ -58,11 +58,9 @@ exports.login = async (req, res) => {
   try {
     const { email, password } = req.body;
 
-    console.log('Login attempt:', { email, hasPassword: !!password });
 
     // Validate email & password
     if (!email || !password) {
-      console.log('Missing credentials');
       return res.status(400).json({
         success: false,
         message: "Please provide email and password",
@@ -75,34 +73,27 @@ exports.login = async (req, res) => {
     // If not found as User, check if it's a student username
     if (!user) {
       const Student = require("../models/Student");
-      const student = await Student.findOne({ 
-        $or: [
-          { username: email },
-          { rollNo: email }
-        ]
+      const student = await Student.findOne({
+        $or: [{ username: email }, { rollNo: email }],
       }).select("+password");
 
       if (student && student.password) {
         // Convert student to user-like object for consistent response
         user = student;
-        console.log('Student found:', { id: student._id, username: student.username || student.rollNo });
       }
     }
 
     if (!user) {
-      console.log('User/Student not found:', email);
       return res.status(401).json({
         success: false,
         message: "Invalid credentials",
       });
     }
 
-    console.log('User found:', { id: user._id, email: user.email || user.username });
 
     // Check if password matches
     const isMatch = await user.comparePassword(password);
 
-    console.log('Password match:', isMatch);
 
     if (!isMatch) {
       return res.status(401).json({
@@ -114,28 +105,29 @@ exports.login = async (req, res) => {
     // Generate token
     const token = generateToken(user._id);
 
-    console.log('Login successful for:', email);
 
     // Return appropriate user data based on type
-    const userData = user.role ? {
-      // User (Teacher/Admin)
-      id: user._id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      subject: user.subject,
-      phoneNumber: user.phoneNumber,
-      avatar: user.avatar,
-    } : {
-      // Student
-      id: user._id,
-      name: user.name,
-      email: user.username || user.rollNo, // Use username as email for students
-      role: 'student',
-      rollNo: user.rollNo,
-      class: user.class,
-      section: user.section,
-    };
+    const userData = user.role
+      ? {
+          // User (Teacher/Admin)
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          subject: user.subject,
+          phoneNumber: user.phoneNumber,
+          avatar: user.avatar,
+        }
+      : {
+          // Student
+          id: user._id,
+          name: user.name,
+          email: user.username || user.rollNo, // Use username as email for students
+          role: "student",
+          rollNo: user.rollNo,
+          class: user.class,
+          section: user.section,
+        };
 
     res.json({
       success: true,
@@ -143,7 +135,6 @@ exports.login = async (req, res) => {
       token,
     });
   } catch (error) {
-    console.log('Login error:', error.message);
     res.status(500).json({
       success: false,
       message: error.message,
