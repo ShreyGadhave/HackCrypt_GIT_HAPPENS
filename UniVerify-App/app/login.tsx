@@ -22,16 +22,33 @@ export default function LoginScreen() {
         }
 
         setLoading(true);
-        const success = await login(email, password);
-        setLoading(false);
-
-        if (success) {
-            router.push('/location-permission');
-        } else {
-            Alert.alert(
-                'Login Failed',
-                'Invalid email or password. Please try again.'
-            );
+        
+        try {
+            const success = await login(email, password);
+            
+            if (success) {
+                router.push('/location-permission');
+            }
+        } catch (error: any) {
+            // Show clean error message
+            let errorMessage = 'An error occurred. Please try again.';
+            
+            if (error.message) {
+                // Clean up error message if it contains debugging info
+                if (error.message.includes('Invalid credentials')) {
+                    errorMessage = 'Invalid email or password.';
+                } else if (error.message.includes('Cannot connect')) {
+                    errorMessage = 'Cannot connect to server. Please check your connection.';
+                } else if (error.message.includes('timeout')) {
+                    errorMessage = 'Connection timeout. Please try again.';
+                } else {
+                    errorMessage = error.message.split('\n')[0]; // Take first line only
+                }
+            }
+            
+            Alert.alert('Login Failed', errorMessage);
+        } finally {
+            setLoading(false);
         }
     };
 

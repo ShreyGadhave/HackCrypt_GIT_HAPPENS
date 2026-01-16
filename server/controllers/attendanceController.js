@@ -517,7 +517,10 @@ exports.markAttendanceByQR = async (req, res) => {
     }
 
     // Verify student belongs to the session's class and section
-    if (student.class !== session.class || student.section !== session.section) {
+    if (
+      student.class !== session.class ||
+      student.section !== session.section
+    ) {
       return res.status(403).json({
         success: false,
         message: "Student is not enrolled in this class/section",
