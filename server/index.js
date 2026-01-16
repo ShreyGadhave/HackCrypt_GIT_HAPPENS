@@ -23,6 +23,9 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(cookieParser());
 
+// Serve uploaded files statically
+app.use("/uploads", express.static("uploads"));
+
 // CORS configuration
 app.use(
   cors({

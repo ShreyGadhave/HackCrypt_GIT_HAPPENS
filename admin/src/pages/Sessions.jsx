@@ -52,7 +52,7 @@ const Sessions = () => {
         topic: session.topic || "",
         class: session.class,
         section: session.section,
-        date: session.date.split('T')[0],
+        date: session.date.split("T")[0],
         startTime: session.startTime,
         endTime: session.endTime,
       });
@@ -169,11 +169,13 @@ const Sessions = () => {
                     <td className="font-medium text-gray-800">
                       {session.subject}
                     </td>
-                    <td>{session.topic || '-'}</td>
+                    <td>{session.topic || "-"}</td>
                     <td>Class {session.class}</td>
                     <td>Section {session.section}</td>
                     <td>{formatDate(session.date)}</td>
-                    <td>{session.startTime} - {session.endTime}</td>
+                    <td>
+                      {session.startTime} - {session.endTime}
+                    </td>
                     <td>
                       <span
                         className={`px-2 py-1 rounded-full text-xs font-medium ${

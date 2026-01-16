@@ -39,8 +39,7 @@ const Login = () => {
         navigate("/dashboard");
       }
     } catch (err) {
-      const message =
-        err?.message || "Login failed. Please try again.";
+      const message = err?.message || "Login failed. Please try again.";
       setError(message);
       dispatch(loginFailure(message));
     } finally {

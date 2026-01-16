@@ -57,7 +57,9 @@ exports.getAttendanceRecords = async (req, res) => {
 
     // If teacher role, only show their sessions' attendance
     if (req.user.role === "teacher") {
-      const teacherSessions = await Session.find({ teacher: req.user._id }).select("_id");
+      const teacherSessions = await Session.find({
+        teacher: req.user._id,
+      }).select("_id");
       const sessionIds = teacherSessions.map((s) => s._id);
       filter.session = { $in: sessionIds };
     }
@@ -88,13 +90,7 @@ exports.getAttendanceRecords = async (req, res) => {
 // @access  Private
 exports.getAttendanceStats = async (req, res) => {
   try {
-    const {
-      class: className,
-      section,
-      month,
-      year,
-      student,
-    } = req.query;
+    const { class: className, section, month, year, student } = req.query;
 
     // Build filter
     const filter = {};
@@ -122,7 +118,9 @@ exports.getAttendanceStats = async (req, res) => {
 
     // If teacher, only their sessions
     if (req.user.role === "teacher") {
-      const teacherSessions = await Session.find({ teacher: req.user._id }).select("_id");
+      const teacherSessions = await Session.find({
+        teacher: req.user._id,
+      }).select("_id");
       const sessionIds = teacherSessions.map((s) => s._id);
       filter.session = { $in: sessionIds };
     }
@@ -145,7 +143,8 @@ exports.getAttendanceStats = async (req, res) => {
     const statsWithPercentage = stats.map((stat) => ({
       status: stat._id,
       count: stat.count,
-      percentage: totalRecords > 0 ? ((stat.count / totalRecords) * 100).toFixed(2) : 0,
+      percentage:
+        totalRecords > 0 ? ((stat.count / totalRecords) * 100).toFixed(2) : 0,
     }));
 
     res.json({
@@ -276,7 +275,8 @@ exports.getDayWiseSummary = async (req, res) => {
     Object.keys(summary).forEach((studentId) => {
       Object.keys(summary[studentId].days).forEach((dateKey) => {
         const totalSessionsForDay = sessionsByDate[dateKey] || 0;
-        summary[studentId].days[dateKey].totalSessionsAvailable = totalSessionsForDay;
+        summary[studentId].days[dateKey].totalSessionsAvailable =
+          totalSessionsForDay;
       });
     });
 
@@ -304,7 +304,7 @@ exports.getSessionWiseSummary = async (req, res) => {
 
     // Build session filter
     const sessionFilter = {};
-    
+
     // If teacher, only their sessions
     if (req.user.role === "teacher") {
       sessionFilter.teacher = req.user._id;
@@ -331,7 +331,9 @@ exports.getSessionWiseSummary = async (req, res) => {
     const sessionIds = sessions.map((s) => s._id);
     const attendanceRecords = await Attendance.find({
       session: { $in: sessionIds },
-    }).populate("student").populate("session");
+    })
+      .populate("student")
+      .populate("session");
 
     // Group by session
     const summary = sessions.map((session) => {
@@ -368,7 +370,8 @@ exports.getSessionWiseSummary = async (req, res) => {
         attendance: studentAttendance,
         statistics: {
           total: students.length,
-          present: sessionAttendance.filter((a) => a.status === "present").length,
+          present: sessionAttendance.filter((a) => a.status === "present")
+            .length,
           absent: sessionAttendance.filter((a) => a.status === "absent").length,
           leave: sessionAttendance.filter((a) => a.status === "leave").length,
           unmarked: students.length - sessionAttendance.length,
@@ -426,9 +429,7 @@ exports.getStudentAttendance = async (req, res) => {
     };
 
     stats.attendancePercentage =
-      stats.total > 0
-        ? ((stats.present / stats.total) * 100).toFixed(2)
-        : 0;
+      stats.total > 0 ? ((stats.present / stats.total) * 100).toFixed(2) : 0;
 
     res.json({
       success: true,

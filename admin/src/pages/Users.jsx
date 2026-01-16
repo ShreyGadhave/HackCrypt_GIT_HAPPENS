@@ -45,10 +45,11 @@ const Users = () => {
     dispatch(setLoading(true));
     try {
       if (userType === "students") {
-        const query =
-          classFilter !== "all"
-            ? `/students?class=${classFilter}`
-            : "/students";
+        // Extract just the number from "Class 10" format
+        const classNumber = classFilter !== "all" ? classFilter.split(" ")[1] : null;
+        const query = classNumber
+          ? `/students?class=${classNumber}`
+          : "/students";
         const response = await api.get(query);
         if (response.success) {
           dispatch(setStudents(response.data));
@@ -72,12 +73,15 @@ const Users = () => {
     setFormData({
       name: "",
       email: "",
+      password: "",
       rollNo: "",
-      class: "Class 10",
-      section: "10 A",
+      class: "10",
+      section: "A",
       gender: "Male",
       subject: "Mathematics",
       phoneNumber: "",
+      profilePhoto: null,
+      idCard: null,
     });
     setShowModal(true);
   };
@@ -88,12 +92,15 @@ const Users = () => {
     setFormData({
       name: user.name,
       email: user.email || "",
+      password: "",
       rollNo: user.rollNo || "",
-      class: user.class || "Class 10",
-      section: user.section || "10 A",
+      class: user.class || "10",
+      section: user.section || "A",
       gender: user.gender || "Male",
       subject: user.subject || "Mathematics",
       phoneNumber: user.phoneNumber || "",
+      profilePhoto: null,
+      idCard: null,
     });
     setShowModal(true);
   };
@@ -131,58 +138,89 @@ const Users = () => {
     e.preventDefault();
 
     try {
+      const formDataToSend = new FormData();
+      
       if (modalMode === "add") {
         const endpoint =
           userType === "students" ? "/students/create" : "/users/create";
-        const payload =
-          userType === "students"
-            ? {
-                name: formData.name,
-                rollNo: formData.rollNo,
-                class: formData.class,
-                section: formData.section,
-                gender: formData.gender,
-              }
-            : {
-                name: formData.name,
-                email: formData.email,
-                role: "teacher",
-                subject: formData.subject,
-                phoneNumber: formData.phoneNumber,
-              };
+        
+        if (userType === "students") {
+          formDataToSend.append("name", formData.name);
+          formDataToSend.append("rollNo", formData.rollNo);
+          formDataToSend.append("class", formData.class);
+          formDataToSend.append("section", formData.section);
+          formDataToSend.append("gender", formData.gender);
+          if (formData.profilePhoto) {
+            formDataToSend.append("profilePhoto", formData.profilePhoto);
+          }
+          if (formData.idCard) {
+            formDataToSend.append("idCard", formData.idCard);
+          }
+        } else {
+          formDataToSend.append("name", formData.name);
+          formDataToSend.append("email", formData.email);
+          formDataToSend.append("password", formData.password);
+          formDataToSend.append("subject", formData.subject);
+          formDataToSend.append("phoneNumber", formData.phoneNumber);
+          if (formData.profilePhoto) {
+            formDataToSend.append("profilePhoto", formData.profilePhoto);
+          }
+        }
 
-        const response = await api.post(endpoint, payload);
+        const response = await api.post(endpoint, formDataToSend, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
         if (response.success) {
           fetchUsers();
           setShowModal(false);
-          alert(
-            `${
-              userType === "students" ? "Student" : "Teacher"
-            } added successfully!`
-          );
+          if (response.credentials) {
+            alert(
+              `${
+                userType === "students" ? "Student" : "Teacher"
+              } added successfully!\n\nLogin Credentials:\nUsername: ${response.credentials.username}\nPassword: ${response.credentials.password}`
+            );
+          } else {
+            alert(
+              `${
+                userType === "students" ? "Student" : "Teacher"
+              } added successfully!`
+            );
+          }
         }
       } else {
         const endpoint =
           userType === "students"
-            ? `/students/${selectedUser.id}`
-            : `/users/${selectedUser.id}`;
-        const payload =
-          userType === "students"
-            ? {
-                name: formData.name,
-                rollNo: formData.rollNo,
-                class: formData.class,
-                section: formData.section,
-                gender: formData.gender,
-              }
-            : {
-                name: formData.name,
-                email: formData.email,
-                subject: formData.subject,
-                phoneNumber: formData.phoneNumber,
-              };
+            ? `/students/${selectedUser._id}`
+            : `/users/${selectedUser._id}`;
+        
+        if (userType === "students") {
+          formDataToSend.append("name", formData.name);
+          formDataToSend.append("rollNo", formData.rollNo);
+          formDataToSend.append("class", formData.class);
+          formDataToSend.append("section", formData.section);
+          formDataToSend.append("gender", formData.gender);
+          if (formData.profilePhoto) {
+            formDataToSend.append("profilePhoto", formData.profilePhoto);
+          }
+          if (formData.idCard) {
+            formDataToSend.append("idCard", formData.idCard);
+          }
+        } else {
+          formDataToSend.append("name", formData.name);
+          formDataToSend.append("email", formData.email);
+          if (formData.password) {
+            formDataToSend.append("password", formData.password);
+          }
+          formDataToSend.append("subject", formData.subject);
+          formDataToSend.append("phoneNumber", formData.phoneNumber);
+          if (formData.profilePhoto) {
+            formDataToSend.append("profilePhoto", formData.profilePhoto);
+          }
+        }
 
-        const response = await api.put(endpoint, payload);
+        const response = await api.put(endpoint, formDataToSend, {
+          headers: { "Content-Type": "multipart/form-data" },
+        });
         if (response.success) {
           fetchUsers();
           setShowModal(false);
@@ -199,15 +237,16 @@ const Users = () => {
     }
   };
 
-  const classes = [
-    "Class 6",
-    "Class 7",
-    "Class 8",
-    "Class 9",
-    "Class 10",
-    "Class 11",
-    "Class 12",
-  ];
+  const classes = ["6", "7", "8", "9", "10", "11", "12"];
+  const classDisplay = {
+    "6": "Class 6",
+    "7": "Class 7",
+    "8": "Class 8",
+    "9": "Class 9",
+    "10": "Class 10",
+    "11": "Class 11",
+    "12": "Class 12",
+  };
 
   const sections = ["A", "B", "C", "D"];
 
@@ -315,8 +354,8 @@ const Users = () => {
               >
                 <option value="all">All Classes</option>
                 {classes.map((cls) => (
-                  <option key={cls} value={cls}>
-                    {cls}
+                  <option key={cls} value={`Class ${cls}`}>
+                    Class {cls}
                   </option>
                 ))}
               </select>
@@ -381,7 +420,7 @@ const Users = () => {
               <tbody>
                 {filteredUsers.map((user, index) => (
                   <tr
-                    key={user.id}
+                    key={user._id}
                     className="border-b border-gray-100 hover:bg-gray-50"
                   >
                     <td className="px-4 py-3 text-sm text-gray-600">
@@ -428,7 +467,7 @@ const Users = () => {
                           <Edit size={18} />
                         </button>
                         <button
-                          onClick={() => handleDeleteUser(user.id)}
+                          onClick={() => handleDeleteUser(user._id)}
                           className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
                           title="Delete"
                         >
@@ -512,7 +551,7 @@ const Users = () => {
                       >
                         {classes.map((cls) => (
                           <option key={cls} value={cls}>
-                            {cls}
+                            {classDisplay[cls]}
                           </option>
                         ))}
                       </select>
@@ -530,10 +569,7 @@ const Users = () => {
                         required
                       >
                         {sections.map((sec) => (
-                          <option
-                            key={sec}
-                            value={`${formData.class.split(" ")[1]} ${sec}`}
-                          >
+                          <option key={sec} value={sec}>
                             {sec}
                           </option>
                         ))}
@@ -558,6 +594,36 @@ const Users = () => {
                       <option>Female</option>
                       <option>Other</option>
                     </select>
+                  </div>
+
+                  {/* Profile Photo */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Profile Photo
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) =>
+                        setFormData({ ...formData, profilePhoto: e.target.files[0] })
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    />
+                  </div>
+
+                  {/* ID Card */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      ID Card Image
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) =>
+                        setFormData({ ...formData, idCard: e.target.files[0] })
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    />
                   </div>
                 </>
               ) : (
@@ -612,6 +678,43 @@ const Users = () => {
                           ...formData,
                           phoneNumber: e.target.value,
                         })
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    />
+                  </div>
+
+                  {/* Password */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Password {modalMode === "add" ? "*" : "(leave blank to keep current)"}
+                    </label>
+                    <input
+                      type="password"
+                      value={formData.password}
+                      onChange={(e) =>
+                        setFormData({ ...formData, password: e.target.value })
+                      }
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                      required={modalMode === "add"}
+                      minLength={6}
+                    />
+                    {modalMode === "add" && (
+                      <p className="text-xs text-gray-500 mt-1">
+                        Minimum 6 characters
+                      </p>
+                    )}
+                  </div>
+
+                  {/* Profile Photo */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Profile Photo
+                    </label>
+                    <input
+                      type="file"
+                      accept="image/*"
+                      onChange={(e) =>
+                        setFormData({ ...formData, profilePhoto: e.target.files[0] })
                       }
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                     />
