@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { QRCodeCanvas } from "qrcode.react";
 import { useAppSelector, useAppDispatch } from "../app/hooks";
 import {
   setSessions,
@@ -9,12 +10,15 @@ import {
 } from "../features/sessions/sessionsSlice";
 import api from "../lib/api";
 import { formatDate } from "../lib/utils";
-import { Plus, Edit, Trash2, X, Calendar, Clock, MapPin } from "lucide-react";
+import { Plus, Edit, Trash2, X, Calendar, Clock, MapPin, QrCode } from "lucide-react";
 
 const Sessions = () => {
   const dispatch = useAppDispatch();
   const { sessions, loading } = useAppSelector((state) => state.sessions);
   const [showModal, setShowModal] = useState(false);
+  const [showQRModal, setShowQRModal] = useState(false);
+  const [qrToken, setQrToken] = useState("");
+  const [selectedSession, setSelectedSession] = useState(null);
   const [editingSession, setEditingSession] = useState(null);
   const [formData, setFormData] = useState({
     subject: "",
@@ -117,6 +121,26 @@ const Sessions = () => {
     }
   };
 
+  const handleGenerateQR = async (session) => {
+    try {
+      const response = await api.post(`/sessions/${session._id}/qr-token`);
+      if (response.success) {
+        setQrToken(response.data.token);
+        setSelectedSession(session);
+        setShowQRModal(true);
+      }
+    } catch (error) {
+      console.error("Error generating QR:", error);
+      alert(error?.response?.data?.message || "Error generating QR code");
+    }
+  };
+
+  const handleCloseQRModal = () => {
+    setShowQRModal(false);
+    setQrToken("");
+    setSelectedSession(null);
+  };
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -194,12 +218,25 @@ const Sessions = () => {
                         <button
                           onClick={() => handleOpenModal(session)}
                           className="p-1 hover:bg-blue-50 rounded text-primary"
+                          title="Edit"
                         >
                           <Edit size={16} />
                         </button>
                         <button
+                          onClick={() => handleGenerateQR(session)}
+                          className="p-1 hover:bg-green-50 rounded text-green-600"
+                          title="Generate QR"
+                          disabled={
+                            session.status === "completed" ||
+                            session.status === "cancelled"
+                          }
+                        >
+                          <QrCode size={16} />
+                        </button>
+                        <button
                           onClick={() => handleDelete(session._id)}
                           className="p-1 hover:bg-red-50 rounded text-red-600"
+                          title="Delete"
                         >
                           <Trash2 size={16} />
                         </button>
@@ -359,6 +396,73 @@ const Sessions = () => {
                 </button>
               </div>
             </form>
+          </div>
+        </div>
+      )}
+
+      {/* QR Code Modal */}
+      {showQRModal && selectedSession && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
+          <div className="bg-white rounded-lg max-w-md w-full">
+            <div className="flex items-center justify-between p-6 border-b border-gray-200">
+              <h2 className="text-xl font-semibold text-gray-800">
+                Session QR Code
+              </h2>
+              <button
+                onClick={handleCloseQRModal}
+                className="p-1 hover:bg-gray-100 rounded"
+              >
+                <X size={20} />
+              </button>
+            </div>
+
+            <div className="p-6 space-y-4">
+              {/* Session Info */}
+              <div className="bg-gray-50 rounded-lg p-4 space-y-2">
+                <h3 className="font-semibold text-gray-800">
+                  {selectedSession.subject}
+                </h3>
+                {selectedSession.topic && (
+                  <p className="text-sm text-gray-600">{selectedSession.topic}</p>
+                )}
+                <div className="flex items-center gap-4 text-sm text-gray-600">
+                  <span>Class {selectedSession.class}{selectedSession.section}</span>
+                  <span>•</span>
+                  <span>{formatDate(selectedSession.date)}</span>
+                </div>
+                <div className="text-sm text-gray-600">
+                  {selectedSession.startTime} - {selectedSession.endTime}
+                </div>
+              </div>
+
+              {/* QR Code Display */}
+              <div className="flex flex-col items-center justify-center bg-white border-2 border-gray-200 rounded-lg p-6">
+                <div className="bg-white p-4 rounded-lg">
+                  <QRCodeCanvas
+                    value={qrToken}
+                    size={256}
+                    level="H"
+                    includeMargin={true}
+                  />
+                </div>
+                <p className="text-sm text-gray-500 mt-4 text-center">
+                  Students can scan this QR code to mark their attendance
+                </p>
+                <p className="text-xs text-gray-400 mt-2">
+                  Valid until session ends
+                </p>
+              </div>
+
+              {/* Actions */}
+              <div className="flex gap-3">
+                <button
+                  onClick={handleCloseQRModal}
+                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
           </div>
         </div>
       )}

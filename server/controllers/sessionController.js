@@ -355,3 +355,88 @@ exports.getSessionStats = async (req, res) => {
     });
   }
 };
+
+// @desc    Generate QR token for session
+// @route   POST /api/sessions/:id/qr-token
+// @access  Private (Teacher/Admin)
+exports.generateQRToken = async (req, res) => {
+  try {
+    const jwt = require("jsonwebtoken");
+    
+    const session = await Session.findById(req.params.id);
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        message: "Session not found",
+      });
+    }
+
+    // Check authorization - teacher can only generate for their own sessions
+    if (
+      req.user.role === "teacher" &&
+      session.teacher.toString() !== req.user._id.toString()
+    ) {
+      return res.status(403).json({
+        success: false,
+        message: "Not authorized to generate QR for this session",
+      });
+    }
+
+    // Validate session is active (scheduled or ongoing)
+    if (session.status === "completed" || session.status === "cancelled") {
+      return res.status(400).json({
+        success: false,
+        message: `Cannot generate QR for ${session.status} session`,
+      });
+    }
+
+    // Calculate expiration time (session end time)
+    const sessionDate = new Date(session.date);
+    const [endHours, endMinutes] = session.endTime.split(":");
+    const expirationTime = new Date(sessionDate);
+    expirationTime.setHours(parseInt(endHours), parseInt(endMinutes), 0, 0);
+
+    // Check if session has already expired
+    if (expirationTime < new Date()) {
+      return res.status(400).json({
+        success: false,
+        message: "Session has already ended",
+      });
+    }
+
+    // Create JWT payload with session details
+    const payload = {
+      sessionId: session._id.toString(),
+      teacherId: session.teacher.toString(),
+      class: session.class,
+      section: session.section,
+      subject: session.subject,
+      date: session.date,
+      startTime: session.startTime,
+      endTime: session.endTime,
+    };
+
+    // Generate JWT token that expires at session end time
+    const expiresIn = Math.floor((expirationTime - new Date()) / 1000); // seconds until expiration
+    
+    const token = jwt.sign(payload, process.env.JWT_SECRET, {
+      expiresIn: expiresIn,
+    });
+
+    res.json({
+      success: true,
+      data: {
+        token,
+        expiresAt: expirationTime,
+      },
+    });
+  } catch (error) {
+    console.error("Error generating QR token:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error generating QR token",
+      error: error.message,
+    });
+  }
+};

@@ -10,6 +10,7 @@ import Button from '@/components/Button';
 export default function QRScannerScreen() {
     const router = useRouter();
     const [scanned, setScanned] = useState(false);
+    const [scannedData, setScannedData] = useState<string>('');
     const [permission, requestPermission] = useCameraPermissions();
 
     if (!permission) {
@@ -50,11 +51,17 @@ export default function QRScannerScreen() {
     const handleBarCodeScanned = ({ type, data }: { type: string; data: string }) => {
         if (!scanned) {
             setScanned(true);
+            setScannedData(data);
             // Navigate to success screen after a brief delay
             setTimeout(() => {
                 router.push('/verification/success');
             }, 500);
         }
+    };
+
+    const handleScanAgain = () => {
+        setScanned(false);
+        setScannedData('');
     };
 
     return (
@@ -101,6 +108,14 @@ export default function QRScannerScreen() {
                         <Text className="text-gray-300 text-center text-sm mt-2 shadow-md">
                             {scanned ? 'Verifying...' : 'The QR code will be scanned automatically'}
                         </Text>
+                        {scanned && scannedData && (
+                            <View className="mt-4 bg-gray-800/90 rounded-xl p-4">
+                                <Text className="text-gray-400 text-xs text-center mb-1">Scanned Data:</Text>
+                                <Text className="text-white text-sm text-center font-mono" numberOfLines={3}>
+                                    {scannedData}
+                                </Text>
+                            </View>
+                        )}
                     </View>
                 </View>
             </CameraView>
@@ -113,6 +128,17 @@ export default function QRScannerScreen() {
                         onPress={() => handleBarCodeScanned({ type: 'QR', data: 'demo-qr-code' })}
                         variant="secondary"
                         icon={<Ionicons name="scan" size={24} color="white" />}
+                    />
+                </View>
+            )}
+
+            {/* Scan Again Button */}
+            {scanned && (
+                <View className="absolute bottom-10 left-4 right-4">
+                    <Button
+                        title="Scan Again"
+                        onPress={handleScanAgain}
+                        icon={<Ionicons name="refresh" size={24} color="white" />}
                     />
                 </View>
             )}

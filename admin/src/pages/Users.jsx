@@ -46,7 +46,8 @@ const Users = () => {
     try {
       if (userType === "students") {
         // Extract just the number from "Class 10" format
-        const classNumber = classFilter !== "all" ? classFilter.split(" ")[1] : null;
+        const classNumber =
+          classFilter !== "all" ? classFilter.split(" ")[1] : null;
         const query = classNumber
           ? `/students?class=${classNumber}`
           : "/students";
@@ -139,11 +140,11 @@ const Users = () => {
 
     try {
       const formDataToSend = new FormData();
-      
+
       if (modalMode === "add") {
         const endpoint =
           userType === "students" ? "/students/create" : "/users/create";
-        
+
         if (userType === "students") {
           formDataToSend.append("name", formData.name);
           formDataToSend.append("rollNo", formData.rollNo);
@@ -177,7 +178,9 @@ const Users = () => {
             alert(
               `${
                 userType === "students" ? "Student" : "Teacher"
-              } added successfully!\n\nLogin Credentials:\nUsername: ${response.credentials.username}\nPassword: ${response.credentials.password}`
+              } added successfully!\n\nLogin Credentials:\nUsername: ${
+                response.credentials.username
+              }\nPassword: ${response.credentials.password}`
             );
           } else {
             alert(
@@ -192,7 +195,7 @@ const Users = () => {
           userType === "students"
             ? `/students/${selectedUser._id}`
             : `/users/${selectedUser._id}`;
-        
+
         if (userType === "students") {
           formDataToSend.append("name", formData.name);
           formDataToSend.append("rollNo", formData.rollNo);
@@ -239,13 +242,13 @@ const Users = () => {
 
   const classes = ["6", "7", "8", "9", "10", "11", "12"];
   const classDisplay = {
-    "6": "Class 6",
-    "7": "Class 7",
-    "8": "Class 8",
-    "9": "Class 9",
-    "10": "Class 10",
-    "11": "Class 11",
-    "12": "Class 12",
+    6: "Class 6",
+    7: "Class 7",
+    8: "Class 8",
+    9: "Class 9",
+    10: "Class 10",
+    11: "Class 11",
+    12: "Class 12",
   };
 
   const sections = ["A", "B", "C", "D"];
@@ -605,7 +608,10 @@ const Users = () => {
                       type="file"
                       accept="image/*"
                       onChange={(e) =>
-                        setFormData({ ...formData, profilePhoto: e.target.files[0] })
+                        setFormData({
+                          ...formData,
+                          profilePhoto: e.target.files[0],
+                        })
                       }
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                     />
@@ -686,7 +692,10 @@ const Users = () => {
                   {/* Password */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Password {modalMode === "add" ? "*" : "(leave blank to keep current)"}
+                      Password{" "}
+                      {modalMode === "add"
+                        ? "*"
+                        : "(leave blank to keep current)"}
                     </label>
                     <input
                       type="password"
@@ -714,7 +723,10 @@ const Users = () => {
                       type="file"
                       accept="image/*"
                       onChange={(e) =>
-                        setFormData({ ...formData, profilePhoto: e.target.files[0] })
+                        setFormData({
+                          ...formData,
+                          profilePhoto: e.target.files[0],
+                        })
                       }
                       className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
                     />

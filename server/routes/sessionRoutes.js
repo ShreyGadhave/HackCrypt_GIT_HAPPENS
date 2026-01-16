@@ -8,6 +8,7 @@ const {
   updateSession,
   deleteSession,
   getSessionStats,
+  generateQRToken,
 } = require("../controllers/sessionController");
 
 // Session statistics
@@ -24,5 +25,13 @@ router
   .get(protect, getSession)
   .put(protect, authorize("teacher", "admin"), updateSession)
   .delete(protect, authorize("teacher", "admin"), deleteSession);
+
+// QR token generation for attendance
+router.post(
+  "/:id/qr-token",
+  protect,
+  authorize("teacher", "admin"),
+  generateQRToken
+);
 
 module.exports = router;
