@@ -1,15 +1,65 @@
-import React from 'react';
-import { View, Text, ScrollView, TouchableOpacity, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, ScrollView, TouchableOpacity, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import ProfileInfoCard from '@/components/ProfileInfoCard';
 import Button from '@/components/Button';
-import { studentData } from '@/data/studentData';
 import { useAuth } from '@/contexts/AuthContext';
 import { Ionicons } from '@expo/vector-icons';
+import api from '@/lib/api';
+
+interface StudentData {
+    _id: string;
+    name: string;
+    rollNo: string;
+    class: string;
+    section: string;
+    username?: string;
+    dateOfBirth?: string;
+    parentName?: string;
+    parentContact?: string;
+    address?: string;
+}
 
 export default function ProfileScreen() {
-    const { logout } = useAuth();
+    const { user, logout, refreshUser } = useAuth();
+    const [studentData, setStudentData] = useState<StudentData | null>(null);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        fetchStudentData();
+    }, []);
+
+    const fetchStudentData = async () => {
+        try {
+            setLoading(true);
+            // Refresh user data from backend (silently fails if offline)
+            await refreshUser();
+            
+            // If user has a student ID, fetch student details
+            if (user?.id) {
+                try {
+                    const response = await api.getStudent(user.id);
+                    if (response.success && response.data) {
+                        setStudentData(response.data);
+                    }
+                } catch (error: any) {
+                    console.log('No student data available:', error.message);
+                    // Continue with cached user data if backend is unavailable
+                }
+            }
+        } catch (error: any) {
+            console.error('Failed to fetch profile data:', error.message);
+            // Show user-friendly message if completely offline
+            Alert.alert(
+                'Network Error',
+                'Unable to connect to server. Displaying cached profile data.',
+                [{ text: 'OK' }]
+            );
+        } finally {
+            setLoading(false);
+        }
+    };
 
     const handleLogout = () => {
         Alert.alert(
@@ -29,6 +79,24 @@ export default function ProfileScreen() {
         );
     };
 
+    if (loading) {
+        return (
+            <SafeAreaView className="flex-1 bg-gray-50">
+                <StatusBar style="dark" />
+                <View className="flex-1 items-center justify-center">
+                    <ActivityIndicator size="large" color="#2196F3" />
+                    <Text className="text-gray-600 mt-4">Loading profile...</Text>
+                </View>
+            </SafeAreaView>
+        );
+    }
+
+    const displayName = studentData?.name || user?.name || 'User';
+    const displayId = studentData?.rollNo || user?.id || 'N/A';
+    const displayEmail = user?.email || 'N/A';
+    const displayClass = studentData?.class ? `Class ${studentData.class}` : 'N/A';
+    const displaySection = studentData?.section ? `Section ${studentData.section}` : 'N/A';
+
     return (
         <SafeAreaView className="flex-1 bg-gray-50">
             <StatusBar style="dark" />
@@ -41,10 +109,15 @@ export default function ProfileScreen() {
                 {/* Avatar and Basic Info */}
                 <View className="items-center mb-8">
                     <View className="bg-primary-100 rounded-full w-28 h-28 items-center justify-center mb-4">
-                        <Text className="text-6xl">{studentData.avatar}</Text>
+                        <Text className="text-6xl">👤</Text>
                     </View>
-                    <Text className="text-gray-900 text-3xl font-bold mb-2">{studentData.name}</Text>
-                    <Text className="text-gray-500 text-lg">{studentData.id}</Text>
+                    <Text className="text-gray-900 text-3xl font-bold mb-2">{displayName}</Text>
+                    <Text className="text-gray-500 text-lg">{displayId}</Text>
+                    {user?.role && (
+                        <View className="mt-2 px-3 py-1 bg-blue-100 rounded-full">
+                            <Text className="text-blue-700 text-sm font-medium capitalize">{user.role}</Text>
+                        </View>
+                    )}
                 </View>
 
                 {/* Personal Information Section */}
@@ -55,28 +128,50 @@ export default function ProfileScreen() {
                 {/* Profile Information Cards */}
                 <View className="pb-6">
                     <ProfileInfoCard
-                        label="College"
-                        value={studentData.college}
-                        icon={<Ionicons name="school" size={24} color="#2196F3" />}
-                    />
-
-                    <ProfileInfoCard
-                        label="Department"
-                        value={studentData.department}
-                        icon={<Ionicons name="book" size={24} color="#10B981" />}
-                    />
-
-                    <ProfileInfoCard
-                        label="Year"
-                        value={studentData.year}
-                        icon={<Ionicons name="calendar" size={24} color="#F59E0B" />}
-                    />
-
-                    <ProfileInfoCard
                         label="Email"
-                        value={studentData.email}
-                        icon={<Ionicons name="mail" size={24} color="#EF4444" />}
+                        value={displayEmail}
+                        icon={<Ionicons name="mail" size={24} color="#2196F3" />}
                     />
+
+                    {studentData?.class && (
+                        <ProfileInfoCard
+                            label="Class"
+                            value={displayClass}
+                            icon={<Ionicons name="book" size={24} color="#10B981" />}
+                        />
+                    )}
+
+                    {studentData?.section && (
+                        <ProfileInfoCard
+                            label="Section"
+                            value={displaySection}
+                            icon={<Ionicons name="grid" size={24} color="#F59E0B" />}
+                        />
+                    )}
+
+                    {studentData?.username && (
+                        <ProfileInfoCard
+                            label="Username"
+                            value={studentData.username}
+                            icon={<Ionicons name="person" size={24} color="#8B5CF6" />}
+                        />
+                    )}
+
+                    {studentData?.parentName && (
+                        <ProfileInfoCard
+                            label="Parent Name"
+                            value={studentData.parentName}
+                            icon={<Ionicons name="people" size={24} color="#EC4899" />}
+                        />
+                    )}
+
+                    {studentData?.parentContact && (
+                        <ProfileInfoCard
+                            label="Parent Contact"
+                            value={studentData.parentContact}
+                            icon={<Ionicons name="call" size={24} color="#EF4444" />}
+                        />
+                    )}
                 </View>
 
                 {/* Settings Section */}

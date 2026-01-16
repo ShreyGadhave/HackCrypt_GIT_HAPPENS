@@ -362,7 +362,7 @@ exports.getSessionStats = async (req, res) => {
 exports.generateQRToken = async (req, res) => {
   try {
     const jwt = require("jsonwebtoken");
-    
+
     const session = await Session.findById(req.params.id);
 
     if (!session) {
@@ -419,7 +419,7 @@ exports.generateQRToken = async (req, res) => {
 
     // Generate JWT token that expires at session end time
     const expiresIn = Math.floor((expirationTime - new Date()) / 1000); // seconds until expiration
-    
+
     const token = jwt.sign(payload, process.env.JWT_SECRET, {
       expiresIn: expiresIn,
     });

@@ -10,7 +10,16 @@ import {
 } from "../features/sessions/sessionsSlice";
 import api from "../lib/api";
 import { formatDate } from "../lib/utils";
-import { Plus, Edit, Trash2, X, Calendar, Clock, MapPin, QrCode } from "lucide-react";
+import {
+  Plus,
+  Edit,
+  Trash2,
+  X,
+  Calendar,
+  Clock,
+  MapPin,
+  QrCode,
+} from "lucide-react";
 
 const Sessions = () => {
   const dispatch = useAppDispatch();
@@ -423,10 +432,15 @@ const Sessions = () => {
                   {selectedSession.subject}
                 </h3>
                 {selectedSession.topic && (
-                  <p className="text-sm text-gray-600">{selectedSession.topic}</p>
+                  <p className="text-sm text-gray-600">
+                    {selectedSession.topic}
+                  </p>
                 )}
                 <div className="flex items-center gap-4 text-sm text-gray-600">
-                  <span>Class {selectedSession.class}{selectedSession.section}</span>
+                  <span>
+                    Class {selectedSession.class}
+                    {selectedSession.section}
+                  </span>
                   <span>•</span>
                   <span>{formatDate(selectedSession.date)}</span>
                 </div>
