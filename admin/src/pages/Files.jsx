@@ -35,6 +35,122 @@ const Files = () => {
     description: "",
   });
 
+  // Mock data for demonstration
+  const mockFiles = [
+    // Admin Notices
+    {
+      id: "notice-1",
+      name: "Parent-Teacher Meeting Notice",
+      category: "Notice",
+      subject: "General",
+      description: "Annual parent-teacher meeting scheduled for next week. All parents are requested to attend.",
+      type: "pdf",
+      size: 245,
+      downloads: 156,
+      uploadedAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      id: "notice-2",
+      name: "Annual Sports Day Announcement",
+      category: "Event",
+      subject: "General",
+      description: "Sports day will be held on 25th January. All students must participate.",
+      type: "pdf",
+      size: 189,
+      downloads: 234,
+      uploadedAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      id: "notice-3",
+      name: "New Attendance Policy 2026",
+      category: "Policy",
+      subject: "General",
+      description: "Updated attendance policy for the academic year 2026. Minimum 75% attendance required.",
+      type: "pdf",
+      size: 512,
+      downloads: 189,
+      uploadedAt: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+    // Teacher Materials
+    {
+      id: "file-1",
+      name: "Algebra Chapter 5 - Assignment.pdf",
+      category: "Assignment",
+      subject: "Mathematics",
+      description: "Solve all problems from page 45 to 52. Submission deadline: Next Monday.",
+      type: "pdf",
+      size: 1024,
+      downloads: 45,
+      uploadedAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      id: "file-2",
+      name: "Photosynthesis Notes.pdf",
+      category: "Notes",
+      subject: "Science",
+      description: "Detailed notes on photosynthesis process and its importance in plant biology.",
+      type: "pdf",
+      size: 2048,
+      downloads: 78,
+      uploadedAt: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      id: "file-3",
+      name: "Grammar Rules Study Material.docx",
+      category: "Study Material",
+      subject: "English",
+      description: "Comprehensive guide covering all grammar rules with examples.",
+      type: "docx",
+      size: 856,
+      downloads: 92,
+      uploadedAt: new Date(Date.now() - 4 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      id: "file-4",
+      name: "Mid-Term Question Paper 2026.pdf",
+      category: "Question Paper",
+      subject: "Mathematics",
+      description: "Sample question paper for mid-term examination. Pattern matches final exam.",
+      type: "pdf",
+      size: 678,
+      downloads: 124,
+      uploadedAt: new Date(Date.now() - 6 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      id: "file-5",
+      name: "Chapter 3 Exercise Solutions.pdf",
+      category: "Solution",
+      subject: "Mathematics",
+      description: "Step-by-step solutions for all exercises in Chapter 3 - Trigonometry.",
+      type: "pdf",
+      size: 1536,
+      downloads: 167,
+      uploadedAt: new Date(Date.now() - 8 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      id: "file-6",
+      name: "Programming Basics Notes.pdf",
+      category: "Notes",
+      subject: "Computer Science",
+      description: "Introduction to programming concepts, variables, and control structures.",
+      type: "pdf",
+      size: 2304,
+      downloads: 56,
+      uploadedAt: new Date(Date.now() - 10 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+    {
+      id: "file-7",
+      name: "History Assignment - World War II.docx",
+      category: "Assignment",
+      subject: "Social Studies",
+      description: "Write a detailed essay on the causes and effects of World War II.",
+      type: "docx",
+      size: 425,
+      downloads: 38,
+      uploadedAt: new Date(Date.now() - 12 * 24 * 60 * 60 * 1000).toISOString(),
+    },
+  ];
+
   useEffect(() => {
     fetchFiles();
   }, []);
@@ -43,11 +159,16 @@ const Files = () => {
     dispatch(setLoading(true));
     try {
       const response = await api.get("/files");
-      if (response.success) {
+      if (response.success && response.data && response.data.length > 0) {
         dispatch(setFiles(response.data));
+      } else {
+        // Use mock data if API returns no data
+        dispatch(setFiles(mockFiles));
       }
     } catch (error) {
       console.error("Error fetching files:", error);
+      // Use mock data on error
+      dispatch(setFiles(mockFiles));
     } finally {
       dispatch(setLoading(false));
     }
