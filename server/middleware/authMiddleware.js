@@ -1,4 +1,5 @@
 const User = require("../models/User");
+const Student = require("../models/Student");
 const { verifyToken } = require("../utils/tokenUtils");
 
 // Protect routes - Authentication middleware
@@ -33,16 +34,28 @@ exports.protect = async (req, res, next) => {
       });
     }
 
-    // Get user from token
-    req.user = await User.findById(decoded.id).select("-password");
+    // Try to find user in User model first
+    let user = await User.findById(decoded.id).select("-password");
 
-    if (!req.user) {
+    // If not found in User model, check Student model
+    if (!user) {
+      user = await Student.findById(decoded.id).select("-password");
+      
+      // Add role property for students to maintain consistency
+      if (user) {
+        user = user.toObject();
+        user.role = "student";
+      }
+    }
+
+    if (!user) {
       return res.status(401).json({
         success: false,
         message: "User not found",
       });
     }
 
+    req.user = user;
     next();
   } catch (error) {
     return res.status(401).json({

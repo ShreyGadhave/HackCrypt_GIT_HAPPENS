@@ -58,6 +58,7 @@ exports.getStudents = async (req, res) => {
 // @route   GET /api/students/:id
 // @access  Private
 exports.getStudent = async (req, res) => {
+  console.log(req.params);
   try {
     const student = await Student.findById(req.params.id);
 

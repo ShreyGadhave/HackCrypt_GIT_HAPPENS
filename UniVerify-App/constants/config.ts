@@ -18,6 +18,9 @@ export const API_CONFIG = {
   // - Mac/Linux: Run 'ifconfig' or 'ip addr' in Terminal
 
   BASE_URL: "http://192.168.0.32:5000/api", // ← CHANGE THIS!
+  
+  // ML Service URL (runs on different port - default 8000)
+  ML_SERVICE_URL: "http://192.168.0.32:8000", // ← ML service for face verification, OCR, GPS
 
   // Timeout in milliseconds (30 seconds for slower connections)
   TIMEOUT: 30000,
