@@ -54,7 +54,8 @@ class ApiClient {
       );
 
       try {
-        const response = await fetch(`${this.baseURL}${endpoint}`, {
+        const baseURL = options.baseURL || this.baseURL;
+        const response = await fetch(`${baseURL}${endpoint}`, {
           ...options,
           headers,
           signal: controller.signal,
@@ -127,7 +128,42 @@ class ApiClient {
       name: string;
       email: string;
       role: string;
-    }>("/auth/me");
+    }>('/auth/me');
+  }
+
+  // Session endpoints
+  async getSessions(filters: any = {}) {
+    // Convert filters to query string
+    const queryParams = new URLSearchParams();
+    Object.keys(filters).forEach(key => {
+      if (filters[key] !== undefined && filters[key] !== null) {
+        queryParams.append(key, filters[key].toString());
+      }
+    });
+    return this.request(`/sessions?${queryParams.toString()}`);
+  }
+
+  async joinSession(sessionId: string, location?: { latitude: number; longitude: number }) {
+    return this.request(`/sessions/${sessionId}/join`, {
+      method: 'POST',
+      body: JSON.stringify(location || {}),
+    });
+  }
+
+  async validateGps(data: { teacher_lat: number; teacher_lon: number; student_lat: number; student_lon: number; radius: number }) {
+    return this.request('/gps/validate', {
+      method: 'POST',
+      body: JSON.stringify(data),
+      baseURL: API_CONFIG.ML_API_URL,
+    });
+  }
+
+  async verifyBluetooth(data: { session_id: string; student_id: string; beacon_uuid: string; rssi_readings: string[] }) {
+    return this.request('/bluetooth/verify-proximity', {
+      method: 'POST',
+      body: JSON.stringify(data),
+      baseURL: API_CONFIG.ML_API_URL,
+    });
   }
 
   // Student endpoints

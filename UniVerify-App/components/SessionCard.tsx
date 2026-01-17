@@ -8,7 +8,7 @@ interface SessionCardProps {
     classroom: string;
     time: string;
     date?: string;
-    status: 'live' | 'upcoming';
+    status: 'live' | 'upcoming' | 'completed';
     onJoin?: () => void;
 }
 
@@ -21,15 +21,25 @@ export default function SessionCard({
     onJoin,
 }: SessionCardProps) {
     const isLive = status === 'live';
+    const isCompleted = status === 'completed';
 
     return (
-        <View className="bg-white rounded-card p-5 shadow-card mb-4 mx-4">
+        <View className={`bg-white rounded-card p-5 shadow-card mb-4 mx-4 ${isCompleted ? 'opacity-70' : ''}`}>
             {/* Status Badge */}
             {isLive && (
                 <View className="flex-row items-center mb-3">
                     <View className="bg-red-100 rounded-full px-3 py-1 flex-row items-center">
                         <View className="w-2 h-2 bg-red-500 rounded-full mr-2" />
                         <Text className="text-red-700 font-semibold text-xs">LIVE NOW</Text>
+                    </View>
+                </View>
+            )}
+
+            {isCompleted && (
+                <View className="flex-row items-center mb-3">
+                    <View className="bg-gray-100 rounded-full px-3 py-1 flex-row items-center">
+                        <Ionicons name="checkmark-circle" size={14} color="#6B7280" className="mr-1" />
+                        <Text className="text-gray-600 font-semibold text-xs ml-1">COMPLETED</Text>
                     </View>
                 </View>
             )}
@@ -62,7 +72,7 @@ export default function SessionCard({
             )}
 
             {/* Upcoming Badge */}
-            {!isLive && (
+            {status === 'upcoming' && (
                 <View className="bg-gray-100 rounded-lg p-3">
                     <Text className="text-gray-600 text-sm text-center">
                         Starts {date || 'soon'}

@@ -111,13 +111,24 @@ exports.createSession = async (req, res) => {
       startTime,
       endTime,
       topic,
+      gpsLocation,
     } = req.body;
 
     // Validation
-    if (!className || !section || !subject || !date || !startTime || !endTime) {
+    const missingFields = [];
+    if (!className) missingFields.push("class");
+    if (!section) missingFields.push("section");
+    if (!subject) missingFields.push("subject");
+    if (!date) missingFields.push("date");
+    if (!startTime) missingFields.push("startTime");
+    if (!endTime) missingFields.push("endTime");
+
+    if (missingFields.length > 0) {
+      console.log("Missing fields:", missingFields);
+      console.log("Request body:", req.body);
       return res.status(400).json({
         success: false,
-        message: "Please provide all required fields",
+        message: `Please provide all required fields: ${missingFields.join(", ")}`,
       });
     }
 
@@ -164,6 +175,7 @@ exports.createSession = async (req, res) => {
       endTime,
       topic: topic || "",
       status: "scheduled",
+      gpsLocation,
     });
 
     const populatedSession = await Session.findById(session._id).populate(
@@ -436,6 +448,73 @@ exports.generateQRToken = async (req, res) => {
     res.status(500).json({
       success: false,
       message: "Error generating QR token",
+      error: error.message,
+    });
+  }
+};
+
+// @desc    Join a session
+// @route   POST /api/sessions/:id/join
+// @access  Private (Student)
+exports.joinSession = async (req, res) => {
+  try {
+    const session = await Session.findById(req.params.id);
+    // We might need Student model if we want to update Student's joinedSessions too
+    // const Student = require("../models/Student"); 
+
+    if (!session) {
+      return res.status(404).json({
+        success: false,
+        message: "Session not found",
+      });
+    }
+
+    // Check if session is active
+    if (session.status === "completed" || session.status === "cancelled") {
+      return res.status(400).json({
+        success: false,
+        message: "Cannot join a completed or cancelled session",
+      });
+    }
+
+    const userId = req.user._id;
+    const { latitude, longitude } = req.body;
+
+    // Check if already joined
+    const alreadyJoined = session.joinRecords.some(
+      (record) => record.student.toString() === userId.toString()
+    );
+
+    if (alreadyJoined) {
+      return res.status(400).json({
+        success: false,
+        message: "You have already joined this session",
+      });
+    }
+
+    // Add to joinRecords
+    session.joinRecords.push({
+      student: userId,
+      timestamp: new Date(),
+      status: "joined",
+      location: {
+        latitude,
+        longitude,
+      },
+    });
+
+    await session.save();
+
+    res.json({
+      success: true,
+      message: "Successfully joined session",
+      data: session, // Returning the updated session
+    });
+  } catch (error) {
+    console.error("Error joining session:", error);
+    res.status(500).json({
+      success: false,
+      message: "Error joining session",
       error: error.message,
     });
   }

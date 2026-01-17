@@ -62,6 +62,12 @@ const studentSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+    joinedSessions: [
+      {
+        type: mongoose.Schema.Types.ObjectId,
+        ref: "Session",
+      },
+    ],
   },
   {
     timestamps: true,
