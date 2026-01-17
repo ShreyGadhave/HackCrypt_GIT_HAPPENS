@@ -142,8 +142,6 @@ export default function FaceVerificationScreen() {
         throw new Error("Failed to fetch student profile");
       }
 
-      console.log("Student data:", JSON.stringify(response.data, null, 2));
-
       const profilePhotoPath = response.data.profilePhoto;
 
       if (!profilePhotoPath) {
@@ -158,8 +156,6 @@ export default function FaceVerificationScreen() {
       const imageUrl = normalizedPath.startsWith("http")
         ? normalizedPath
         : `${baseUrl}/${normalizedPath}`;
-
-      console.log("Fetching profile image from:", imageUrl);
 
       const imageResponse = await fetch(imageUrl);
       if (!imageResponse.ok) {
@@ -380,7 +376,7 @@ export default function FaceVerificationScreen() {
 
         {/* Overlays */}
         {!capturedImage && (
-          <View className="absolute inset-0 items-center justify-center pointer-events-none">
+          <View className="absolute items-center justify-end pb-28 pointer-events-none">
             {/* Frame */}
             <View
               className={`w-64 h-80 border-4 rounded-3xl opacity-80 ${
@@ -473,7 +469,7 @@ export default function FaceVerificationScreen() {
                 className="bg-primary-600 rounded-full p-4 px-8 w-full"
               >
                 <Text className="text-white font-semibold text-lg text-center">
-                  Blink your eyes to capture
+                  Click to capture
                 </Text>
               </TouchableOpacity>
             )}

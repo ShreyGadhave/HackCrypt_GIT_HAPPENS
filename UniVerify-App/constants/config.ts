@@ -17,8 +17,8 @@ export const API_CONFIG = {
   // - Windows: Run 'ipconfig' in Command Prompt
   // - Mac/Linux: Run 'ifconfig' or 'ip addr' in Terminal
 
-  BASE_URL: "http://192.168.0.6:5000/api", // ← CHANGE THIS!
-  ML_API_URL: "http://192.168.0.6:8000", // Python Microservice
+  BASE_URL: "http://192.168.0.32:5000/api", // ← CHANGE THIS!
+  ML_API_URL: "http://192.168.0.32:8000", // Python Microservice
 
   // ML Service URL (runs on different port - default 8000)
   ML_SERVICE_URL: "http://192.168.0.32:8000", // ← ML service for face verification, OCR, GPS

@@ -46,6 +46,45 @@ export default function IDVerificationScreen() {
     return str.trim().toLowerCase();
   };
 
+  // Extract significant words from name (filter out common words)
+  const extractNameWords = (name: string): string[] => {
+    const normalized = normalizeString(name);
+    // Filter out common words and split by spaces
+    return normalized
+      .split(/\s+/)
+      .filter(word => word.length > 2); // Only consider words with more than 2 characters
+  };
+
+  // Check if names have significant overlap
+  const checkNameMatch = (ocrName: string, userName: string): boolean => {
+    const ocrWords = extractNameWords(ocrName);
+    const userWords = extractNameWords(userName);
+
+    if (ocrWords.length === 0 || userWords.length === 0) {
+      return false;
+    }
+
+    // Count matching words
+    let matchCount = 0;
+    for (const ocrWord of ocrWords) {
+      for (const userWord of userWords) {
+        // Allow partial matches for longer words (e.g., "john" matches "johnny")
+        if (
+          ocrWord === userWord ||
+          ocrWord.includes(userWord) ||
+          userWord.includes(ocrWord)
+        ) {
+          matchCount++;
+          break;
+        }
+      }
+    }
+
+    // Consider valid if at least half of the words match
+    const threshold = Math.ceil(Math.min(ocrWords.length, userWords.length) / 2);
+    return matchCount >= threshold;
+  };
+
   // Validate OCR data against user profile
   const validateIDCard = (ocrData: OCRResponse): ValidationResult => {
     if (!user) {
@@ -67,18 +106,23 @@ export default function IDVerificationScreen() {
     const userName = normalizeString(user.name);
     const userBranch = normalizeString(user.class || "");
 
-    // Validate: both name and branch must match
-    const nameMatch = ocrName === userName;
-    const branchMatch = ocrBranch === userBranch;
+    // Check name match with flexible matching
+    const nameMatch = checkNameMatch(ocrData.name, user.name);
+    
+    // Branch matching is optional - only check if both have values
+    const branchMatch = 
+      !ocrBranch || !userBranch || ocrBranch.includes(userBranch) || userBranch.includes(ocrBranch);
+
+    // Valid if name matches (branch is optional)
+    const isValid = nameMatch;
 
     return {
-      isValid: nameMatch && branchMatch,
+      isValid,
       ocrName: ocrData.name,
       ocrBranch: ocrData.branch,
       userName: user.name,
       userBranch: user.class || "",
-      message:
-        nameMatch && branchMatch ? "ID Card Verified" : "ID Card Mismatch",
+      message: isValid ? "ID Card Verified" : "ID Card Mismatch - Name does not match",
     };
   };
 

@@ -64,38 +64,55 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const token = await AsyncStorage.getItem(TOKEN_KEY);
       const userData = await AsyncStorage.getItem(STORAGE_KEY);
 
-      // If we have both token and user data, validate the token
+      // If we have both token and user data, use them immediately
       if (token && userData) {
         try {
-          // Try to validate token with backend
-          const response = await api.getMe();
-          if (response.success && response.data) {
-            // Token is valid, update user data from backend
-            const validUser: User = {
-              id: response.data.id,
-              name: response.data.name,
-              email: response.data.email,
-              role: response.data.role,
-            };
-            await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(validUser));
-            setUser(validUser);
-          } else {
-            // Token validation failed, clear storage
-            await clearAuth();
+          const storedUser = JSON.parse(userData);
+          // Set user immediately from storage for persistence
+          setUser(storedUser);
+          
+          // Then try to validate/refresh in background
+          try {
+            const response = await api.getMe();
+            if (response.success && response.data) {
+              // Token is valid, update user data from backend
+              const validUser: User = {
+                id: response.data.id,
+                name: response.data.name,
+                email: response.data.email,
+                role: response.data.role,
+                profilePhoto: response.data.profilePhoto,
+                studentId: response.data.studentId,
+                rollNo: response.data.rollNo,
+                class: response.data.class,
+                section: response.data.section,
+              };
+              await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(validUser));
+              setUser(validUser);
+            }
+          } catch (error) {
+            // Network error - keep using stored user data
+            // Only clear auth if it's a 401 (unauthorized) error
+            if (error instanceof Error && error.message.includes("401")) {
+              console.log("Token expired, clearing auth");
+              await clearAuth();
+            } else {
+              // Network error - keep user logged in with cached data
+              console.log("Network error during token validation, using cached user");
+            }
           }
         } catch (error) {
-          // Network error or invalid token - clear auth and force login
-          console.log("Token validation failed, clearing auth");
+          // Failed to parse stored data
+          console.log("Failed to parse stored user data, clearing auth");
           await clearAuth();
         }
       } else {
         // No token or user data, ensure clean state
-        await clearAuth();
+        setUser(null);
       }
     } catch (error) {
-      // Silent log - don't show red error screen on app load
-      console.log("Failed to load user, clearing auth");
-      await clearAuth();
+      console.log("Failed to load user:", error);
+      setUser(null);
     } finally {
       setIsLoading(false);
     }
@@ -119,12 +136,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         // Store token
         await AsyncStorage.setItem(TOKEN_KEY, response.token);
 
-        // Store user data
+        // Store user data with all available fields
         const userData: User = {
           id: response.data.id,
           name: response.data.name,
           email: response.data.email,
           role: response.data.role,
+          profilePhoto: response.data.profilePhoto,
+          studentId: response.data.studentId,
+          rollNo: response.data.rollNo,
+          class: response.data.class,
+          section: response.data.section,
         };
 
         await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
@@ -148,6 +170,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           name: response.data.name,
           email: response.data.email,
           role: response.data.role,
+          profilePhoto: response.data.profilePhoto,
+          studentId: response.data.studentId,
+          rollNo: response.data.rollNo,
+          class: response.data.class,
+          section: response.data.section,
         };
         await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(userData));
         setUser(userData);
