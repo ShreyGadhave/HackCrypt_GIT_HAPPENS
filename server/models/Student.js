@@ -19,7 +19,7 @@ const studentSchema = new mongoose.Schema(
     },
     section: {
       type: String,
-      required: [true, "Please provide section"],
+      default: "",
     },
     gender: {
       type: String,
