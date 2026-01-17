@@ -1,6 +1,7 @@
-import React from 'react';
-import { View, Text, TouchableOpacity } from 'react-native';
+import React, { useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, Animated } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
+import { LinearGradient } from 'expo-linear-gradient';
 import Button from './Button';
 
 interface SessionCardProps {
@@ -22,16 +23,61 @@ export default function SessionCard({
 }: SessionCardProps) {
     const isLive = status === 'live';
     const isCompleted = status === 'completed';
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const pulseAnim = useRef(new Animated.Value(1)).current;
+    const scaleAnim = useRef(new Animated.Value(0.98)).current;
 
-    return (
-        <View className={`bg-white rounded-card p-5 shadow-card mb-4 mx-4 ${isCompleted ? 'opacity-70' : ''}`}>
+    useEffect(() => {
+        // Fade in animation
+        Animated.timing(fadeAnim, {
+            toValue: 1,
+            duration: 400,
+            useNativeDriver: true,
+        }).start();
+
+        // Scale animation
+        Animated.spring(scaleAnim, {
+            toValue: 1,
+            tension: 50,
+            friction: 7,
+            useNativeDriver: true,
+        }).start();
+
+        // Pulse animation for live sessions
+        if (isLive) {
+            Animated.loop(
+                Animated.sequence([
+                    Animated.timing(pulseAnim, {
+                        toValue: 1.1,
+                        duration: 800,
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(pulseAnim, {
+                        toValue: 1,
+                        duration: 800,
+                        useNativeDriver: true,
+                    }),
+                ])
+            ).start();
+        }
+    }, [isLive]);
+
+    const CardContent = () => (
+        <View className={`bg-white/95 rounded-card p-5 shadow-card mb-4 ${isCompleted ? 'opacity-70' : ''}`}>
             {/* Status Badge */}
             {isLive && (
                 <View className="flex-row items-center mb-3">
-                    <View className="bg-red-100 rounded-full px-3 py-1 flex-row items-center">
-                        <View className="w-2 h-2 bg-red-500 rounded-full mr-2" />
-                        <Text className="text-red-700 font-semibold text-xs">LIVE NOW</Text>
-                    </View>
+                    <LinearGradient
+                        colors={['#F44336', '#FF9800']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        className="rounded-full px-3 py-1 flex-row items-center"
+                    >
+                        <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+                            <View className="w-2 h-2 bg-white rounded-full mr-2" />
+                        </Animated.View>
+                        <Text className="text-white font-bold text-xs">LIVE NOW</Text>
+                    </LinearGradient>
                 </View>
             )}
 
@@ -64,21 +110,60 @@ export default function SessionCard({
 
             {/* Join Button for Live Sessions */}
             {isLive && onJoin && (
-                <Button
-                    title="Join Session"
-                    onPress={onJoin}
-                    icon={<Ionicons name="videocam" size={20} color="white" />}
-                />
+                <TouchableOpacity onPress={onJoin} activeOpacity={0.8}>
+                    <LinearGradient
+                        colors={['#2196F3', '#1976D2']}
+                        start={{ x: 0, y: 0 }}
+                        end={{ x: 1, y: 0 }}
+                        className="rounded-xl py-3 px-4 flex-row items-center justify-center"
+                    >
+                        <Ionicons name="videocam" size={20} color="white" />
+                        <Text className="text-white font-bold text-base ml-2">Join Session</Text>
+                    </LinearGradient>
+                </TouchableOpacity>
             )}
 
             {/* Upcoming Badge */}
             {status === 'upcoming' && (
-                <View className="bg-gray-100 rounded-lg p-3">
-                    <Text className="text-gray-600 text-sm text-center">
+                <View className="bg-gradient-to-r from-primary-50 to-purple-50 rounded-lg p-3 border border-primary-100">
+                    <Text className="text-primary-700 text-sm text-center font-medium">
                         Starts {date || 'soon'}
                     </Text>
                 </View>
             )}
         </View>
+    );
+
+    if (isLive) {
+        return (
+            <Animated.View
+                style={{
+                    opacity: fadeAnim,
+                    transform: [{ scale: scaleAnim }]
+                }}
+                className="mx-4"
+            >
+                <LinearGradient
+                    colors={['#F44336', '#FF9800', '#F44336']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    className="rounded-card p-0.5 shadow-glow-red"
+                >
+                    <CardContent />
+                </LinearGradient>
+            </Animated.View>
+        );
+    }
+
+    return (
+        <Animated.View
+            style={{
+                opacity: fadeAnim,
+                transform: [{ scale: scaleAnim }]
+            }}
+            className="mx-4"
+        >
+            <CardContent />
+        </Animated.View>
     );
 }

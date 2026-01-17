@@ -1,7 +1,8 @@
-import React, { useEffect, useState, useCallback } from 'react';
-import { View, Text, ScrollView, Alert, RefreshControl, ActivityIndicator } from 'react-native';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { View, Text, ScrollView, Alert, RefreshControl, ActivityIndicator, Animated } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
+import { LinearGradient } from 'expo-linear-gradient';
 import AttendanceCard from '@/components/AttendanceCard';
 import SessionCard from '@/components/SessionCard';
 import { getCurrentDate } from '@/data/studentData';
@@ -40,6 +41,8 @@ export default function HomeScreen() {
     const [liveSessions, setLiveSessions] = useState<Session[]>([]);
     const [upcomingSessions, setUpcomingSessions] = useState<Session[]>([]);
     const [completedSessions, setCompletedSessions] = useState<Session[]>([]);
+    const fadeAnim = useRef(new Animated.Value(0)).current;
+    const pulseAnim = useRef(new Animated.Value(1)).current;
 
     const fetchSessions = async () => {
         try {
@@ -63,6 +66,27 @@ export default function HomeScreen() {
     useFocusEffect(
         useCallback(() => {
             fetchSessions();
+            // Fade in animation
+            Animated.timing(fadeAnim, {
+                toValue: 1,
+                duration: 600,
+                useNativeDriver: true,
+            }).start();
+            // Pulse animation for notification icon
+            Animated.loop(
+                Animated.sequence([
+                    Animated.timing(pulseAnim, {
+                        toValue: 1.1,
+                        duration: 2000,
+                        useNativeDriver: true,
+                    }),
+                    Animated.timing(pulseAnim, {
+                        toValue: 1,
+                        duration: 2000,
+                        useNativeDriver: true,
+                    }),
+                ])
+            ).start();
         }, [])
     );
 
@@ -222,99 +246,134 @@ export default function HomeScreen() {
     };
 
     return (
-        <SafeAreaView className="flex-1 bg-gray-50">
-            <StatusBar style="dark" />
-            <ScrollView
-                className="flex-1"
-                showsVerticalScrollIndicator={false}
-                refreshControl={
-                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-                }
-            >
-                {/* Header */}
-                <View className="px-6 pt-6 pb-4">
-                    <View className="flex-row items-center justify-between mb-2">
-                        <View className="flex-1">
-                            <Text className="text-gray-600 text-sm mb-1">Welcome back,</Text>
-                            <Text className="text-gray-900 text-3xl font-bold">{user?.name || 'Student'}</Text>
-                        </View>
-                        <View className="bg-primary-50 rounded-full p-3">
-                            <Ionicons name="notifications-outline" size={26} color="#2196F3" />
-                        </View>
-                    </View>
-                    <Text className="text-gray-500 text-base">{currentDate}</Text>
-                </View>
-
-                {/* Attendance Status Card - Keeping mock for now as per request focus on sessions */}
-                <AttendanceCard checkInTime="07:58:59" checkOutTime="16:10:12" />
-
-                {loading ? (
-                    <View className="p-10 items-center">
-                        <ActivityIndicator size="large" color="#2196F3" />
-                    </View>
-                ) : (
-                    <>
-                        {/* Live Sessions */}
-                        {liveSessions.length > 0 && (
-                            <View className="px-6 mb-6">
-                                <View className="flex-row items-center mb-4">
-                                    <View className="w-2 h-2 rounded-full bg-red-500 mr-2 animate-pulse" />
-                                    <Text className="text-gray-900 text-xl font-bold">Live Now</Text>
-                                </View>
-                                {liveSessions.map((session) => (
-                                    <SessionCard
-                                        key={session._id}
-                                        subject={session.subject}
-                                        classroom={`${session.class}-${session.section}`}
-                                        time={`${session.startTime} - ${session.endTime}`}
-                                        status="live"
-                                        onJoin={() => handleJoinSession(session)}
-                                    />
-                                ))}
+        <LinearGradient
+            colors={['#E3F2FD', '#FFFFFF']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            className="flex-1"
+        >
+            <SafeAreaView className="flex-1">
+                <StatusBar style="dark" />
+                <ScrollView
+                    className="flex-1"
+                    showsVerticalScrollIndicator={false}
+                    refreshControl={
+                        <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+                    }
+                >
+                    {/* Header */}
+                    <Animated.View
+                        style={{ opacity: fadeAnim }}
+                        className="px-6 pt-6 pb-4"
+                    >
+                        <View className="flex-row items-center justify-between mb-2">
+                            <View className="flex-1">
+                                <Text className="text-gray-500 text-sm mb-1 font-medium">Welcome back,</Text>
+                                <Text className="text-gray-900 text-3xl font-bold">{user?.name || 'Student'}</Text>
                             </View>
-                        )}
-
-                        {/* Upcoming Sessions */}
-                        <View className="px-6 mb-6">
-                            <Text className="text-gray-900 text-xl font-bold mb-4">Upcoming Sessions</Text>
-                            {upcomingSessions.length > 0 ? (
-                                upcomingSessions.map((session) => (
-                                    <SessionCard
-                                        key={session._id}
-                                        subject={session.subject}
-                                        classroom={`${session.class}-${session.section}`}
-                                        time={`${session.startTime} - ${session.endTime}`}
-                                        date={new Date(session.date).toLocaleDateString()}
-                                        status="upcoming"
-                                    />
-                                ))
-                            ) : (
-                                <Text className="text-gray-500 italic">No upcoming sessions</Text>
-                            )}
+                            <Animated.View style={{ transform: [{ scale: pulseAnim }] }}>
+                                <LinearGradient
+                                    colors={['#2196F3', '#9C27B0']}
+                                    start={{ x: 0, y: 0 }}
+                                    end={{ x: 1, y: 1 }}
+                                    className="rounded-full p-3"
+                                >
+                                    <Ionicons name="notifications-outline" size={26} color="white" />
+                                </LinearGradient>
+                            </Animated.View>
                         </View>
+                        <Text className="text-gray-600 text-base font-medium">{currentDate}</Text>
+                    </Animated.View>
 
-                        {/* Recent / Completed Attendance */}
-                        <View className="px-6 mb-6">
-                            <Text className="text-gray-900 text-xl font-bold mb-4">Recent Sessions</Text>
-                            {completedSessions.length > 0 ? (
-                                completedSessions.map((session) => (
-                                    <SessionCard
-                                        key={session._id}
-                                        subject={session.subject}
-                                        classroom={`${session.class}-${session.section}`}
-                                        time={`${session.startTime} - ${session.endTime}`}
-                                        date={new Date(session.date).toLocaleDateString()}
-                                        status="completed"
-                                    />
-                                ))
-                            ) : (
-                                <Text className="text-gray-500 italic">No completed sessions yet</Text>
-                            )}
+                    {/* Attendance Status Card - Keeping mock for now as per request focus on sessions */}
+                    <AttendanceCard checkInTime="07:58:59" checkOutTime="16:10:12" />
+
+                    {loading ? (
+                        <View className="p-10 items-center">
+                            <ActivityIndicator size="large" color="#2196F3" />
+                            <Text className="text-gray-500 mt-4 font-medium">Loading sessions...</Text>
                         </View>
-                    </>
-                )}
-            </ScrollView>
-        </SafeAreaView>
+                    ) : (
+                        <>
+                            {/* Live Sessions */}
+                            {liveSessions.length > 0 && (
+                                <View className="mb-6">
+                                    <View className="flex-row items-center mb-4 px-6">
+                                        <LinearGradient
+                                            colors={['#F44336', '#FF9800']}
+                                            start={{ x: 0, y: 0 }}
+                                            end={{ x: 1, y: 0 }}
+                                            className="w-3 h-3 rounded-full mr-2"
+                                        />
+                                        <Text className="text-gray-900 text-2xl font-bold">Live Now</Text>
+                                    </View>
+                                    {liveSessions.map((session) => (
+                                        <SessionCard
+                                            key={session._id}
+                                            subject={session.subject}
+                                            classroom={`${session.class}-${session.section}`}
+                                            time={`${session.startTime} - ${session.endTime}`}
+                                            status="live"
+                                            onJoin={() => handleJoinSession(session)}
+                                        />
+                                    ))}
+                                </View>
+                            )}
+
+                            {/* Upcoming Sessions */}
+                            <View className="mb-6">
+                                <View className="px-6 mb-4">
+                                    <Text className="text-gray-900 text-2xl font-bold">Upcoming Sessions</Text>
+                                    <View className="h-1 w-16 bg-gradient-to-r from-primary-500 to-purple-500 rounded-full mt-2" />
+                                </View>
+                                {upcomingSessions.length > 0 ? (
+                                    upcomingSessions.map((session) => (
+                                        <SessionCard
+                                            key={session._id}
+                                            subject={session.subject}
+                                            classroom={`${session.class}-${session.section}`}
+                                            time={`${session.startTime} - ${session.endTime}`}
+                                            date={new Date(session.date).toLocaleDateString()}
+                                            status="upcoming"
+                                        />
+                                    ))
+                                ) : (
+                                    <View className="mx-4 bg-white/80 rounded-card p-8 items-center">
+                                        <Ionicons name="calendar-outline" size={48} color="#9CA3AF" />
+                                        <Text className="text-gray-500 mt-3 font-medium">No upcoming sessions</Text>
+                                    </View>
+                                )}
+                            </View>
+
+                            {/* Recent / Completed Attendance */}
+                            <View className="mb-6">
+                                <View className="px-6 mb-4">
+                                    <Text className="text-gray-900 text-2xl font-bold">Recent Sessions</Text>
+                                    <View className="h-1 w-16 bg-gradient-to-r from-primary-500 to-teal-500 rounded-full mt-2" />
+                                </View>
+                                {completedSessions.length > 0 ? (
+                                    completedSessions.map((session) => (
+                                        <SessionCard
+                                            key={session._id}
+                                            subject={session.subject}
+                                            classroom={`${session.class}-${session.section}`}
+                                            time={`${session.startTime} - ${session.endTime}`}
+                                            date={new Date(session.date).toLocaleDateString()}
+                                            status="completed"
+                                        />
+                                    ))
+                                ) : (
+                                    <View className="mx-4 bg-white/80 rounded-card p-8 items-center">
+                                        <Ionicons name="checkmark-done-outline" size={48} color="#9CA3AF" />
+                                        <Text className="text-gray-500 mt-3 font-medium">No completed sessions yet</Text>
+                                    </View>
+                                )}
+                            </View>
+                        </>
+                    )}
+                </ScrollView>
+            </SafeAreaView>
+        </LinearGradient>
     );
 }
 
