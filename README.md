@@ -1,4 +1,4 @@
-# UniVerify - Automatic Student Attendance System
+# UniVerify - Automatic and Smart Student Attendance System
 
 [![GitHub Stars](https://img.shields.io/github/stars/ShreyGadhave/HackCrypt_GIT_HAPPENS?style=social)](https://github.com/ShreyGadhave/HackCrypt_GIT_HAPPENS/stargazers)
 [![GitHub Forks](https://img.shields.io/github/forks/ShreyGadhave/HackCrypt_GIT_HAPPENS?style=social)](https://github.com/ShreyGadhave/HackCrypt_GIT_HAPPENS/network/members)
