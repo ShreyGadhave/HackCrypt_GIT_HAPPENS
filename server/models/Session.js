@@ -41,6 +41,38 @@ const sessionSchema = new mongoose.Schema(
       enum: ["scheduled", "ongoing", "completed", "cancelled"],
       default: "scheduled",
     },
+    gpsLocation: {
+      latitude: Number,
+      longitude: Number,
+      city: String,
+      region: String,
+      country: String,
+      ip: String,
+      timezone: String,
+      accuracy: Number,
+      timestamp: Date,
+    },
+    joinRecords: [
+      {
+        student: {
+          type: mongoose.Schema.Types.ObjectId,
+          ref: "User",
+        },
+        timestamp: {
+          type: Date,
+          default: Date.now,
+        },
+        status: {
+          type: String,
+          default: "joined",
+        },
+        location: {
+          latitude: Number,
+          longitude: Number,
+        },
+        deviceInfo: String,
+      },
+    ],
   },
   {
     timestamps: true,

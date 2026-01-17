@@ -9,6 +9,7 @@ const {
   deleteSession,
   getSessionStats,
   generateQRToken,
+  joinSession,
 } = require("../controllers/sessionController");
 
 // Session statistics
@@ -33,5 +34,8 @@ router.post(
   authorize("teacher", "admin"),
   generateQRToken
 );
+
+// Join session
+router.post("/:id/join", protect, joinSession);
 
 module.exports = router;

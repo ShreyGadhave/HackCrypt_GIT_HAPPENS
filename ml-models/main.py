@@ -16,6 +16,7 @@ Version: 1.0.0
 
 import os
 import uuid
+import json
 import logging
 import shutil
 from datetime import datetime
@@ -35,6 +36,13 @@ load_dotenv()
 from services.gps_service import GPSManager, get_dummy_teacher, DUMMY_TEACHERS
 from services.face_service import FaceVerifier, get_dummy_student, DUMMY_STUDENTS
 from services.ocr_service import IDCardExtractor, get_dummy_ocr_result
+from services.bluetooth_service import (
+    BluetoothProximityService, 
+    register_beacon, 
+    get_beacon, 
+    get_dummy_beacon,
+    DEFAULT_RSSI_THRESHOLD
+)
 
 # Configure logging
 logging.basicConfig(
@@ -61,12 +69,19 @@ class GPSValidationRequest(BaseModel):
     radius: float = Field(default=50.0, description="Allowed radius in meters")
 
 
-class GPSValidationResponse(BaseModel):
-    """Response model for GPS proximity validation."""
+class GPSValidationData(BaseModel):
+    """Data model for GPS proximity validation."""
     allowed: bool
     distance: float
     radius: float
     message: str
+
+
+class GPSValidationResponse(BaseModel):
+    """Standard API Response model for GPS validation."""
+    success: bool
+    data: GPSValidationData
+    message: Optional[str] = None
 
 
 class AttendanceVerifyResponse(BaseModel):
@@ -74,9 +89,46 @@ class AttendanceVerifyResponse(BaseModel):
     status: str
     timestamp: str
     gps_check: dict
+    bluetooth_check: dict  # NEW: Bluetooth proximity verification
     face_verification: dict
     ocr_extraction: dict
     overall_verified: bool
+
+
+# --- Bluetooth Proximity Models ---
+
+class BeaconRegistrationRequest(BaseModel):
+    """Request model for teacher beacon registration."""
+    session_id: str = Field(..., description="MongoDB session ObjectId")
+    beacon_uuid: str = Field(..., description="BLE beacon UUID (e.g., 550e8400-e29b-41d4-a716-446655440000)")
+    rssi_threshold: int = Field(default=-65, description="RSSI threshold in dBm (default: -65)")
+    teacher_lat: Optional[float] = Field(None, description="Teacher's latitude")
+    teacher_lon: Optional[float] = Field(None, description="Teacher's longitude")
+
+
+class BluetoothProximityRequest(BaseModel):
+    """Request model for student Bluetooth proximity verification."""
+    session_id: str = Field(..., description="MongoDB session ObjectId")
+    student_id: Optional[str] = Field(None, description="Student identifier")
+    beacon_uuid: str = Field(..., description="BLE beacon UUID being scanned")
+    rssi_readings: list = Field(..., description="List of RSSI readings in dBm (e.g., [-45, -42, -47])")
+
+
+class BluetoothProximityData(BaseModel):
+    """Data model for Bluetooth proximity verification."""
+    present: bool
+    rssi_mode: int
+    threshold: int
+    signal_quality: str
+    confidence: str
+    message: str
+
+
+class BluetoothProximityResponse(BaseModel):
+    """Standard API Response model for Bluetooth verification."""
+    success: bool
+    data: Optional[BluetoothProximityData] = None
+    message: Optional[str] = None
 
 
 class HealthResponse(BaseModel):
@@ -94,6 +146,7 @@ class HealthResponse(BaseModel):
 gps_manager = GPSManager()
 face_verifier = FaceVerifier(temp_dir=TEMP_DIR)
 ocr_extractor = IDCardExtractor()
+bluetooth_service = BluetoothProximityService()
 
 
 # ============================================================================
@@ -161,7 +214,6 @@ app = FastAPI(
     lifespan=lifespan
 )
 
-# Configure CORS for frontend integration
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["*"],  # Configure appropriately for production
@@ -236,6 +288,7 @@ async def health_check():
         "services": {
             "gps_manager": "active",
             "face_verifier": "active",
+            "bluetooth_service": "active",
             "ocr_extractor": "active" if ocr_extractor.is_configured() else "api_key_required"
         }
     }
@@ -302,7 +355,95 @@ async def validate_gps_proximity(request: GPSValidationRequest):
         radius=request.radius
     )
     
+    return {
+        "success": True,
+        "data": result,
+        "message": result.get("message")
+    }
+
+
+# --- Bluetooth Proximity ---
+
+@app.post("/bluetooth/register-beacon", tags=["Bluetooth"])
+async def register_teacher_beacon(request: BeaconRegistrationRequest):
+    """
+    Register a BLE beacon for a specific attendance session.
+    
+    This endpoint is called by the teacher's device when starting
+    a new session. It stores the beacon UUID and RSSI threshold
+    for subsequent student verification.
+    
+    **Request Body:**
+    - `session_id`: The MongoDB ID of the session
+    - `beacon_uuid`: The UUID being broadcasted by the teacher
+    - `rssi_threshold`: Cutoff for attendance (e.g., -65 dBm)
+    - `teacher_lat`, `teacher_lon`: Teacher's current coordinates
+    """
+    logger.info("Registering beacon for session %s: UUID=%s", 
+               request.session_id, request.beacon_uuid)
+    
+    result = register_beacon(
+        session_id=request.session_id,
+        beacon_uuid=request.beacon_uuid,
+        rssi_threshold=request.rssi_threshold,
+        teacher_lat=request.teacher_lat,
+        teacher_lon=request.teacher_lon
+    )
+    
+    if not result.get("success"):
+        raise HTTPException(status_code=400, detail=result.get("error"))
+        
     return result
+
+
+@app.post("/bluetooth/verify-proximity", response_model=BluetoothProximityResponse, tags=["Bluetooth"])
+async def verify_bluetooth_proximity(request: BluetoothProximityRequest):
+    """
+    Standalone validation of student proximity using Bluetooth RSSI.
+    
+    The student's device scans for the teacher's beacon and sends
+    multiple RSSI readings. This endpoint calculates the mode and
+    compares it against the registered session threshold.
+    
+    **Request Body:**
+    - `session_id`: The ID of the session
+    - `beacon_uuid`: The UUID scanned by the student
+    - `rssi_readings`: List of recent RSSI values (e.g., [-45, -48, -45])
+    """
+    beacon_info = get_beacon(request.session_id)
+    
+    if not beacon_info:
+        # Instead of 404, return success=False so client can handle it gracefully
+        return {
+            "success": False,
+            "data": None,
+            "message": f"No active beacon found for session {request.session_id}. Please ask teacher to start beacon."
+        }
+    
+    # Verify the UUID matches what the teacher registered
+    if request.beacon_uuid.lower() != beacon_info["uuid"].lower():
+        return {
+            "success": False,
+            "data": None,
+            "message": "Beacon UUID mismatch. You are scanning the wrong device."
+        }
+    
+    try:
+        result = bluetooth_service.validate_proximity(
+            rssi_readings=request.rssi_readings,
+            threshold=beacon_info["threshold"]
+        )
+        return {
+            "success": True,
+            "data": result.to_dict(),
+            "message": result.message
+        }
+    except ValueError as e:
+        return {
+            "success": False,
+            "data": None,
+            "message": str(e)
+        }
 
 
 # --- Face Verification ---
@@ -435,6 +576,9 @@ async def verify_attendance(
     student_lat: float = Form(..., description="Student's latitude"),
     student_lon: float = Form(..., description="Student's longitude"),
     radius: float = Form(default=50.0, description="Allowed radius in meters"),
+    session_id: Optional[str] = Form(None, description="MongoDB session ID for Bluetooth check"),
+    beacon_uuid: Optional[str] = Form(None, description="Scanned beacon UUID"),
+    rssi_readings: Optional[str] = Form(None, description="JSON string of RSSI readings (e.g. '[-45, -48, -45]')"),
     live_image: UploadFile = File(..., description="Live selfie image"),
     id_card_image: UploadFile = File(..., description="ID card/document image")
 ):
@@ -445,6 +589,10 @@ async def verify_attendance(
     
     1. **GPS Check** - Verifies student is within radius of teacher
        - If FAIL: Returns immediately without processing images
+    
+    1.5. **Bluetooth Check (Optional/Dynamic)** - Verifies proximity via BLE RSSI
+       - Only executes if a beacon is registered for the `session_id`
+       - If Registered but check fails: Returns immediately
     
     2. **Face Verification** - Compares selfie with ID card photo
        - Uses DeepFace VGG-Face model
@@ -464,6 +612,9 @@ async def verify_attendance(
     - `teacher_lat`, `teacher_lon`: Teacher's GPS coordinates
     - `student_lat`, `student_lon`: Student's GPS coordinates
     - `radius`: Maximum distance in meters (default: 50)
+    - `session_id`: (Optional) The session being marked
+    - `beacon_uuid`: (Optional) The scanned BLE UUID
+    - `rssi_readings`: (Optional) JSON array of RSSI values
     
     **Files Required:**
     - `live_image`: Live selfie photo
@@ -486,6 +637,7 @@ async def verify_attendance(
         "status": "processing",
         "timestamp": timestamp,
         "gps_check": {},
+        "bluetooth_check": {"status": "skipped", "reason": "Not provided"},
         "face_verification": {},
         "ocr_extraction": {},
         "overall_verified": False
@@ -510,13 +662,62 @@ async def verify_attendance(
         # If GPS check fails, return immediately without processing images
         if not gps_result.get("allowed"):
             response["status"] = "failed"
+            response["bluetooth_check"] = {"skipped": True, "reason": "GPS check failed"}
             response["face_verification"] = {"skipped": True, "reason": "GPS check failed"}
             response["ocr_extraction"] = {"skipped": True, "reason": "GPS check failed"}
-            logger.warning("GPS check failed. Skipping image processing.")
+            logger.warning("GPS check failed. Skipping further processing.")
             return response
         
         logger.info("GPS check passed. Distance: %sm", gps_result.get("distance"))
         
+        # ================================================================
+        # STEP 1.5: BLUETOOTH PROXIMITY CHECK (Optional/Dynamic)
+        # ================================================================
+        bluetooth_passed = True # Default if not used
+        
+        if session_id:
+            beacon_info = get_beacon(session_id)
+            if beacon_info and beacon_info.get("is_active"):
+                logger.info("Step 1.5: Bluetooth proximity check required for session %s...", session_id)
+                
+                if not rssi_readings:
+                    bluetooth_passed = False
+                    response["bluetooth_check"] = {
+                        "status": "failed", 
+                        "reason": "Bluetooth verification required but RSSI readings not provided"
+                    }
+                else:
+                    try:
+                        # Parse RSSI readings if they come as a JSON string
+                        readings = json.loads(rssi_readings) if isinstance(rssi_readings, str) else rssi_readings
+                        
+                        bt_result = bluetooth_service.validate_proximity(
+                            rssi_readings=readings,
+                            threshold=beacon_info.get("threshold", -65)
+                        )
+                        
+                        response["bluetooth_check"] = bt_result.to_dict()
+                        bluetooth_passed = bt_result.present
+                        
+                        if not bluetooth_passed:
+                            logger.warning("Bluetooth proximity check failed: %s", bt_result.message)
+                        else:
+                            logger.info("Bluetooth check passed. Quality: %s", bt_result.signal_quality)
+                            
+                    except Exception as e:
+                        logger.error("Error parsing/validating Bluetooth data: %s", str(e))
+                        bluetooth_passed = False
+                        response["bluetooth_check"] = {"status": "error", "reason": str(e)}
+            else:
+                response["bluetooth_check"] = {"status": "skipped", "reason": "No active beacon for session"}
+        
+        # If Bluetooth check was required and failed, fail-fast
+        if not bluetooth_passed:
+            response["status"] = "failed"
+            response["face_verification"] = {"skipped": True, "reason": "Bluetooth check failed"}
+            response["ocr_extraction"] = {"skipped": True, "reason": "Bluetooth check failed"}
+            return response
+
         # ================================================================
         # STEP 2: FILE HANDLING - Save uploaded images
         # ================================================================
@@ -576,8 +777,9 @@ async def verify_attendance(
         # ================================================================
         gps_passed = gps_result.get("allowed", False)
         face_passed = face_result.get("verified", False)
+        # bluetooth_passed is already calculated above
         
-        if gps_passed and face_passed:
+        if gps_passed and bluetooth_passed and face_passed:
             response["status"] = "verified"
             response["overall_verified"] = True
             logger.info("✅ Attendance verification PASSED")
