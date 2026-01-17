@@ -135,15 +135,20 @@ class ApiClient {
     return this.request(`/students/${studentId}`);
   }
 
-  async getStudents(params?: { search?: string; class?: string; section?: string; gender?: string }) {
+  async getStudents(params?: {
+    search?: string;
+    class?: string;
+    section?: string;
+    gender?: string;
+  }) {
     const queryParams = new URLSearchParams();
-    if (params?.search) queryParams.append('search', params.search);
-    if (params?.class) queryParams.append('class', params.class);
-    if (params?.section) queryParams.append('section', params.section);
-    if (params?.gender) queryParams.append('gender', params.gender);
-    
+    if (params?.search) queryParams.append("search", params.search);
+    if (params?.class) queryParams.append("class", params.class);
+    if (params?.section) queryParams.append("section", params.section);
+    if (params?.gender) queryParams.append("gender", params.gender);
+
     const queryString = queryParams.toString();
-    return this.request(`/students${queryString ? `?${queryString}` : ''}`);
+    return this.request(`/students${queryString ? `?${queryString}` : ""}`);
   }
 
   // Attendance endpoints

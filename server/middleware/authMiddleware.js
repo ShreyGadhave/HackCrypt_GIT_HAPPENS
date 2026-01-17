@@ -40,7 +40,7 @@ exports.protect = async (req, res, next) => {
     // If not found in User model, check Student model
     if (!user) {
       user = await Student.findById(decoded.id).select("-password");
-      
+
       // Add role property for students to maintain consistency
       if (user) {
         user = user.toObject();

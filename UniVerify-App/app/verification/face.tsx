@@ -16,7 +16,7 @@ import { CameraView, useCameraPermissions } from "expo-camera";
 import { useAuth } from "@/contexts/AuthContext";
 import { API_CONFIG } from "@/constants/config";
 import api from "@/lib/api";
-import * as FileSystem from 'expo-file-system/legacy';
+import * as FileSystem from "expo-file-system/legacy";
 
 // Timings for the guided flow
 const STEP_DURATION_OPEN_1 = 2000;
@@ -211,26 +211,26 @@ export default function FaceVerificationScreen() {
         reader.onloadend = () => {
           const result = reader.result as string;
           // Remove data URI prefix to get just the base64 data
-          const base64Data = result.split(',')[1];
+          const base64Data = result.split(",")[1];
           resolve(base64Data);
         };
         reader.onerror = reject;
         reader.readAsDataURL(profileImageBlob);
       });
-      
+
       const base64Data = await base64Promise;
-      
+
       // Save to temporary file using expo-file-system
       profileImageUri = `${FileSystem.cacheDirectory}profile_temp.jpg`;
       await FileSystem.writeAsStringAsync(profileImageUri, base64Data, {
-        encoding: 'base64',
+        encoding: "base64",
       });
-      
+
       console.log("Profile image saved to:", profileImageUri);
 
       // Prepare FormData with both images as file URIs
       const formData = new FormData();
-      
+
       formData.append("selfie", {
         uri: selfieUri,
         type: "image/jpeg",
@@ -242,7 +242,7 @@ export default function FaceVerificationScreen() {
         type: "image/jpeg",
         name: "profile.jpg",
       } as any);
-      
+
       formData.append("preprocess", "false");
 
       // Call verification API - face/verify endpoint is on the ML service (port 8000)
@@ -275,7 +275,9 @@ export default function FaceVerificationScreen() {
       } else {
         // Verification failed
         const errorMsg =
-          result.message || result.error || "Face verification failed. Please try again.";
+          result.message ||
+          result.error ||
+          "Face verification failed. Please try again.";
         setVerificationError(errorMsg);
         setInstruction("Verification Failed");
 
@@ -308,7 +310,7 @@ export default function FaceVerificationScreen() {
       ]);
     } finally {
       setIsVerifying(false);
-      
+
       // Cleanup temporary files
       if (profileImageUri) {
         try {
