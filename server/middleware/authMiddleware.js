@@ -37,6 +37,17 @@ exports.protect = async (req, res, next) => {
     req.user = await User.findById(decoded.id).select("-password");
 
     if (!req.user) {
+      // Check if it's a student
+      const Student = require("../models/Student");
+      req.user = await Student.findById(decoded.id).select("-password");
+
+      if (req.user) {
+        // Add role property for consistency
+        req.user.role = 'student';
+      }
+    }
+
+    if (!req.user) {
       return res.status(401).json({
         success: false,
         message: "User not found",

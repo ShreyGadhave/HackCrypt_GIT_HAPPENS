@@ -17,6 +17,7 @@ export default function RootLayout() {
         <Stack.Screen name="verification/fingerprint" />
         <Stack.Screen name="verification/qr-scanner" />
         <Stack.Screen name="verification/success" />
+        <Stack.Screen name="student" />
       </Stack>
       <StatusBar style="auto" />
     </AuthProvider>

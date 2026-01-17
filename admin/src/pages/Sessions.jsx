@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { QRCodeCanvas } from "qrcode.react";
+import axios from "axios";
 import { useAppSelector, useAppDispatch } from "../app/hooks";
 import {
   setSessions,
@@ -104,7 +105,40 @@ const Sessions = () => {
         }
       } else {
         // Create new session
-        const response = await api.post("/sessions", formData);
+        // First get GPS location
+        let gpsData = null;
+        try {
+          // Using port 5000 (mock) which is confirmed working and returns the expected structure
+          const gpsResponse = await axios.get("http://localhost:8000/teacher/gps");
+
+          if (gpsResponse.data.success) {
+            gpsData = gpsResponse.data;
+          } else {
+            throw new Error("GPS API returned success: false");
+          }
+        } catch (gpsError) {
+          console.error("GPS Error:", gpsError);
+          alert("Failed to verify GPS location. Cannot create session.");
+          return;
+        }
+
+        // If we are here, GPS worked. Proceed to create session.
+        const { latitude, longitude, city, region, country, ip, timezone } = gpsData;
+        const sessionData = {
+          ...formData,
+          gpsLocation: {
+            latitude,
+            longitude,
+            city,
+            region,
+            country,
+            ip,
+            timezone,
+            timestamp: new Date(),
+          },
+        };
+
+        const response = await api.post("/sessions", sessionData);
         if (response.success) {
           dispatch(addSession(response.data));
         }
@@ -211,13 +245,12 @@ const Sessions = () => {
                     </td>
                     <td>
                       <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          session.status === "scheduled"
-                            ? "bg-blue-100 text-blue-700"
-                            : session.status === "completed"
+                        className={`px-2 py-1 rounded-full text-xs font-medium ${session.status === "scheduled"
+                          ? "bg-blue-100 text-blue-700"
+                          : session.status === "completed"
                             ? "bg-green-100 text-green-700"
                             : "bg-gray-100 text-gray-700"
-                        }`}
+                          }`}
                       >
                         {session.status}
                       </span>

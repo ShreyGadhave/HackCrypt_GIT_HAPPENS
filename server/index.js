@@ -41,6 +41,7 @@ app.use("/api/students", studentRoutes);
 app.use("/api/attendance", attendanceRoutes);
 app.use("/api/sessions", sessionRoutes);
 app.use("/api/files", fileRoutes);
+app.use("/api/gps", require("./routes/gpsRoutes"));
 
 // Health check route
 app.get("/api/health", (req, res) => {

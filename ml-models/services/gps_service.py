@@ -31,7 +31,7 @@ class GPSManager:
         ip_api_url (str): The URL for the IP-based geolocation API
     """
     
-    def __init__(self, ip_api_url: str = "https://ipapi.co/json/"):
+    def __init__(self, ip_api_url: str = "http://ipwho.is/"):
         """
         Initialize the GPSManager.
         
@@ -79,9 +79,9 @@ class GPSManager:
                 "longitude": data.get("longitude"),
                 "city": data.get("city"),
                 "region": data.get("region"),
-                "country": data.get("country_name"),
+                "country": data.get("country"), # ipwho.is uses 'country'
                 "ip": data.get("ip"),
-                "timezone": data.get("timezone"),
+                "timezone": data.get("timezone", {}).get("id") if isinstance(data.get("timezone"), dict) else data.get("timezone"),
                 "error": None
             }
             
