@@ -451,56 +451,67 @@ async def verify_bluetooth_proximity(request: BluetoothProximityRequest):
 @app.post("/face/verify", tags=["Face Recognition"])
 async def verify_face(
     selfie: UploadFile = File(..., description="Live selfie image"),
-    id_card: UploadFile = File(..., description="ID card/document image"),
-    preprocess: bool = Query(True, description="Pre-process document image")
+    id_card: UploadFile = File(..., description="User profile photo (legacy name for compatibility)"),
+    preprocess: bool = Query(False, description="Document preprocessing (always disabled for profiles)")
 ):
     """
-    Verify if the face in a selfie matches the face on an ID card.
+    Verify face match between live selfie and stored profile photo.
     
-    This endpoint:
-    1. Optionally pre-processes the ID card (deskew, perspective correction)
-    2. Extracts faces from both images
-    3. Compares face embeddings using DeepFace (VGG-Face model)
-    4. Returns match result with confidence metrics
+    **IMPORTANT:** This endpoint compares:
+    - Live selfie (captured at runtime)
+    - User profile photo (from database)
     
-    **Files Required:**
-    - `selfie`: A live photo of the person
-    - `id_card`: A photo of their government ID document
+    Profile photos are NOT documents and should NEVER be preprocessed.
+    Document preprocessing is disabled by default and forced off if detected.
+    
+    **Request:**
+    - `selfie`: Live camera capture
+    - `id_card`: User profile photo (field name kept for API compatibility)
+    - `preprocess`: Ignored for profile images (always False)
     
     **Response:**
     - `success`: Whether verification completed
     - `verified`: Whether faces match
-    - `distance`: Face embedding distance (lower = more similar)
-    - `threshold`: Distance threshold for match
-    - `model`: DeepFace model used
+    - `confidence`: Match confidence percentage
+    - `match_quality`: Human-readable quality rating
+    - `distance`: Face embedding distance
+    - `threshold`: Threshold used
+    - `model`: DeepFace model name
     """
     selfie_path = None
-    id_card_path = None
-    
+    profile_image_path = None
+
     try:
-        # Save uploaded files temporarily
+        # Save selfie image
         selfie_path = save_upload_file(selfie, "selfie.jpg")
-        id_card_path = save_upload_file(id_card, "id_card.jpg")
         
-        logger.info("Starting face verification: selfie=%s, id_card=%s", 
-                   selfie.filename, id_card.filename)
+        # Save profile image (second image is always a user profile photo, never a document)
+        profile_image_path = save_upload_file(id_card, "profile.jpg")
         
+        # Force preprocessing OFF - profile photos must never be preprocessed
+        preprocess = False
+        
+        logger.info(
+            "Starting face verification: selfie=%s, profile=%s",
+            selfie.filename,
+            id_card.filename
+        )
+
         # Perform face verification
         result = face_verifier.verify_identity(
             selfie_path=selfie_path,
-            id_card_path=id_card_path,
+            profile_image_path=profile_image_path,
             preprocess=preprocess
         )
-        
+
         return result
-        
+
     except Exception as e:
         logger.error("Face verification error: %s", str(e))
         raise HTTPException(status_code=500, detail=str(e))
-        
+
     finally:
-        # Always cleanup temporary files
-        cleanup_files(selfie_path, id_card_path)
+        cleanup_files(selfie_path, profile_image_path)
 
 
 # --- OCR Extraction ---
@@ -580,7 +591,7 @@ async def verify_attendance(
     beacon_uuid: Optional[str] = Form(None, description="Scanned beacon UUID"),
     rssi_readings: Optional[str] = Form(None, description="JSON string of RSSI readings (e.g. '[-45, -48, -45]')"),
     live_image: UploadFile = File(..., description="Live selfie image"),
-    id_card_image: UploadFile = File(..., description="ID card/document image")
+    profile_image: UploadFile = File(..., description="User profile photo")
 ):
     """
     🎯 **Main Attendance Verification Endpoint**
@@ -590,13 +601,9 @@ async def verify_attendance(
     1. **GPS Check** - Verifies student is within radius of teacher
        - If FAIL: Returns immediately without processing images
     
-    1.5. **Bluetooth Check (Optional/Dynamic)** - Verifies proximity via BLE RSSI
-       - Only executes if a beacon is registered for the `session_id`
-       - If Registered but check fails: Returns immediately
-    
-    2. **Face Verification** - Compares selfie with ID card photo
+    2. **Face Verification** - Compares selfie with profile photo
        - Uses DeepFace VGG-Face model
-       - Pre-processes document for better accuracy
+       - Profile photos are NEVER preprocessed
     
     3. **OCR Extraction** - Extracts name/branch from the college ID
        - Requires Groq API key
@@ -618,7 +625,7 @@ async def verify_attendance(
     
     **Files Required:**
     - `live_image`: Live selfie photo
-    - `id_card_image`: College student ID card photo
+    - `profile_image`: User profile photo from database
     
     ---
     
@@ -630,7 +637,7 @@ async def verify_attendance(
     """
     timestamp = datetime.now().isoformat()
     live_image_path = None
-    id_card_path = None
+    profile_image_path = None
     
     # Initialize response structure
     response = {
@@ -724,10 +731,10 @@ async def verify_attendance(
         logger.info("Step 2: Saving uploaded images...")
         
         live_image_path = save_upload_file(live_image, "selfie.jpg")
-        id_card_path = save_upload_file(id_card_image, "id_card.jpg")
+        profile_image_path = save_upload_file(profile_image, "profile.jpg")
         
-        logger.info("Images saved: selfie=%s, id_card=%s", 
-                   live_image.filename, id_card_image.filename)
+        logger.info("Images saved: selfie=%s, profile=%s", 
+                   live_image.filename, profile_image.filename)
         
         # ================================================================
         # STEP 3: FACE VERIFICATION
@@ -736,8 +743,8 @@ async def verify_attendance(
         
         face_result = face_verifier.verify_identity(
             selfie_path=live_image_path,
-            id_card_path=id_card_path,
-            preprocess=True
+            profile_image_path=profile_image_path,
+            preprocess=False  # Profile photos are never preprocessed
         )
         
         response["face_verification"] = face_result
@@ -750,27 +757,18 @@ async def verify_attendance(
                        face_result.get("distance"))
         
         # ================================================================
-        # STEP 4: OCR EXTRACTION
+        # STEP 4: OCR EXTRACTION (Optional - requires actual ID card)
         # ================================================================
-        logger.info("Step 4: OCR extraction...")
+        logger.info("Step 4: OCR extraction (skipped for profile-based verification)...")
         
-        if ocr_extractor.is_configured():
-            ocr_result = ocr_extractor.extract_details(id_card_path)
-            response["ocr_extraction"] = ocr_result
-            
-            if ocr_result.get("success"):
-                logger.info("OCR extraction successful. Document type: %s", 
-                           ocr_result.get("document_type", "Unknown"))
-            else:
-                logger.warning("OCR extraction failed: %s", 
-                              ocr_result.get("error", "Unknown error"))
-        else:
-            # Use dummy data when API is not configured
-            response["ocr_extraction"] = {
-                "warning": "Using dummy data - GROQ_API_KEY not configured",
-                **get_dummy_ocr_result()
-            }
-            logger.warning("OCR API not configured. Using dummy data.")
+        # Note: In profile-based verification, we don't have an ID card image
+        # OCR extraction is only available when using the full attendance/verify endpoint
+        # with a separate ID card image
+        response["ocr_extraction"] = {
+            "skipped": True,
+            "reason": "Profile-based verification does not include ID card"
+        }
+        logger.info("OCR extraction skipped (no ID card in profile verification)")
         
         # ================================================================
         # STEP 5: DETERMINE OVERALL STATUS
@@ -801,7 +799,7 @@ async def verify_attendance(
         # STEP 6: CLEANUP - Remove temporary files
         # ================================================================
         logger.info("Step 6: Cleaning up temporary files...")
-        cleanup_files(live_image_path, id_card_path)
+        cleanup_files(live_image_path, profile_image_path)
 
 
 # --- Dummy Data Endpoints (For Testing) ---

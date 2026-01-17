@@ -116,7 +116,8 @@ export default function IDVerificationScreen() {
     console.log("OCR Response data:", JSON.stringify(data, null, 2));
 
     if (!data.success) {
-      const errorMessage = data.error || data.message || "OCR extraction failed";
+      const errorMessage =
+        data.error || data.message || "OCR extraction failed";
       console.error("OCR extraction failed:", errorMessage);
       throw new Error(errorMessage);
     }

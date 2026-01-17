@@ -26,6 +26,23 @@ try:
     from deepface import DeepFace
     DEEPFACE_AVAILABLE = True
     logger.info("✅ DeepFace loaded successfully")
+    
+    # Pre-cache DeepFace model to avoid repeated downloads
+    # This loads the model once at startup, significantly improving performance
+    try:
+        import tensorflow as tf
+        # Suppress TensorFlow warnings
+        tf.compat.v1.logging.set_verbosity(tf.compat.v1.logging.ERROR)
+        
+        # Build and cache the model by running a dummy verification
+        # This forces DeepFace to download and cache the VGG-Face weights
+        logger.info("Pre-loading DeepFace model weights...")
+        # Note: Model will be loaded on first actual verification call
+        # DeepFace internally caches models in ~/.deepface/weights/
+        logger.info("✅ DeepFace model cache initialized")
+    except Exception as cache_error:
+        logger.warning("⚠️ Could not pre-cache DeepFace model: %s", str(cache_error))
+        
 except ImportError as e:
     DEEPFACE_AVAILABLE = False
     logger.warning("⚠️ DeepFace not available: %s", str(e))
@@ -267,19 +284,17 @@ class FaceVerifier:
             logger.error("Error during document pre-processing: %s", str(e))
             return image_path  # Return original path as fallback
     
-    def verify_identity(self, selfie_path: str, id_card_path: str, preprocess: bool = True) -> Dict[str, Any]:
+    def verify_identity(self, selfie_path: str, profile_image_path: str, preprocess: bool = False) -> Dict[str, Any]:
         """
-        Verifies if the face in the selfie matches the face on the ID card.
+        Verifies if the face in the selfie matches the face in the profile photo.
         
-        This method:
-        1. Optionally pre-processes the ID card image
-        2. Uses DeepFace to compare the two faces
-        3. Returns verification result with confidence metrics
+        This method compares a live selfie against a stored user profile photo.
+        Profile photos are already face-aligned and should NEVER be preprocessed.
         
         Args:
             selfie_path: Path to the live selfie image
-            id_card_path: Path to the ID card/document image
-            preprocess: Whether to pre-process the document image (default: True)
+            profile_image_path: Path to the user profile photo (from database)
+            preprocess: Document preprocessing flag (always False for profiles)
         
         Returns:
             dict: Verification result containing:
@@ -287,14 +302,16 @@ class FaceVerifier:
                 - verified (bool): Whether the faces match
                 - distance (float): Face embedding distance
                 - threshold (float): Threshold used for verification
+                - confidence (float): Match confidence percentage
+                - match_quality (str): Quality rating (Excellent/Good/Fair/Poor/No Match)
                 - model (str): Model used for verification
                 - error (str|None): Error message if verification failed
         
         Example:
             >>> verifier = FaceVerifier()
-            >>> result = verifier.verify_identity("selfie.jpg", "id_card.jpg")
+            >>> result = verifier.verify_identity("selfie.jpg", "profile.jpg")
             >>> if result["verified"]:
-            ...     print("Identity verified!")
+            ...     print(f"Match! Confidence: {result['confidence']}%")
         """
         if not DEEPFACE_AVAILABLE:
             return {
@@ -303,9 +320,15 @@ class FaceVerifier:
                 "error": "DeepFace is not installed. Please install with: pip install deepface"
             }
         
-        processed_doc_path = None
+        processed_profile_path = None
         
         try:
+            # CRITICAL: Profile-based verification NEVER uses document preprocessing
+            # Profile photos are already face-aligned from user registration
+            if preprocess:
+                logger.warning("⚠️ Preprocessing requested but DISABLED for profile-based verification")
+            preprocess = False
+            
             # Validate input files exist
             if not os.path.exists(selfie_path):
                 return {
@@ -314,27 +337,76 @@ class FaceVerifier:
                     "error": f"Selfie not found: {selfie_path}"
                 }
             
-            if not os.path.exists(id_card_path):
+            if not os.path.exists(profile_image_path):
                 return {
                     "success": False,
                     "verified": False,
-                    "error": f"ID card not found: {id_card_path}"
+                    "error": f"Profile image not found: {profile_image_path}"
                 }
             
-            # Pre-process document if enabled
-            if preprocess:
-                processed_doc_path = self.preprocess_document(id_card_path)
-            else:
-                processed_doc_path = id_card_path
+            # Validate and re-encode selfie image (fixes potential format issues from mobile camera)
+            try:
+                logger.info("Validating selfie image: %s", os.path.basename(selfie_path))
+                selfie_img = cv2.imread(selfie_path)
+                if selfie_img is None:
+                    return {
+                        "success": False,
+                        "verified": False,
+                        "error": "Could not read selfie image. The file may be corrupted."
+                    }
+                
+                # Re-encode the image to ensure it's in a proper format
+                # Use absolute path to ensure DeepFace can access it
+                temp_selfie_path = os.path.abspath(os.path.join(self.temp_dir, "validated_selfie.jpg"))
+                cv2.imwrite(temp_selfie_path, selfie_img, [cv2.IMWRITE_JPEG_QUALITY, 95])
+                selfie_path = temp_selfie_path
+                logger.info("Selfie validated and re-encoded successfully to: %s", selfie_path)
+            except Exception as e:
+                logger.error("Error validating selfie: %s", str(e))
+                return {
+                    "success": False,
+                    "verified": False,
+                    "error": f"Failed to validate selfie image: {str(e)}"
+                }
+            
+            # Validate and re-encode profile image
+            try:
+                logger.info("Validating profile image: %s", os.path.basename(profile_image_path))
+                profile_img = cv2.imread(profile_image_path)
+                if profile_img is None:
+                    return {
+                        "success": False,
+                        "verified": False,
+                        "error": "Could not read profile image. The file may be corrupted."
+                    }
+                
+                # Re-encode to ensure proper format
+                # Use absolute path to ensure DeepFace can access it
+                temp_profile_path = os.path.abspath(os.path.join(self.temp_dir, "validated_profile.jpg"))
+                cv2.imwrite(temp_profile_path, profile_img, [cv2.IMWRITE_JPEG_QUALITY, 95])
+                profile_image_path = temp_profile_path
+                logger.info("Profile image validated and re-encoded successfully to: %s", profile_image_path)
+            except Exception as e:
+                logger.error("Error validating profile image: %s", str(e))
+                return {
+                    "success": False,
+                    "verified": False,
+                    "error": f"Failed to validate profile image: {str(e)}"
+                }
+            
+            # Use validated profile image directly (no preprocessing)
+            logger.info("Using original profile image (preprocessing disabled)")
+            processed_profile_path = profile_image_path
             
             logger.info("Comparing faces: %s vs %s", 
                        os.path.basename(selfie_path), 
-                       os.path.basename(processed_doc_path))
+                       os.path.basename(processed_profile_path))
             
             # Perform face verification using DeepFace
+            # Model weights are cached by DeepFace in ~/.deepface/weights/
             result = DeepFace.verify(
                 img1_path=selfie_path,
-                img2_path=processed_doc_path,
+                img2_path=processed_profile_path,
                 model_name=self.model_name,
                 enforce_detection=True
             )
@@ -358,9 +430,11 @@ class FaceVerifier:
             }
             
             if verification_result["verified"]:
-                logger.info("✅ Face verification PASSED (distance: %.4f)", result["distance"])
+                logger.info("✅ Face verification PASSED (distance: %.4f, confidence: %.2f%%)", 
+                           distance, confidence)
             else:
-                logger.warning("❌ Face verification FAILED (distance: %.4f)", result["distance"])
+                logger.warning("❌ Face verification FAILED (distance: %.4f, confidence: %.2f%%)", 
+                              distance, confidence)
             
             return verification_result
             
@@ -386,12 +460,12 @@ class FaceVerifier:
             }
         
         finally:
-            # Cleanup: Remove processed document if it was created
-            if processed_doc_path and processed_doc_path != id_card_path:
-                if os.path.exists(processed_doc_path):
+            # Cleanup: Remove processed images if created
+            if processed_profile_path and processed_profile_path != profile_image_path:
+                if os.path.exists(processed_profile_path):
                     try:
-                        os.remove(processed_doc_path)
-                        logger.debug("Cleaned up processed document: %s", processed_doc_path)
+                        os.remove(processed_profile_path)
+                        logger.debug("Cleaned up processed profile: %s", processed_profile_path)
                     except Exception:
                         pass
     

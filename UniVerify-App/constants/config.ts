@@ -20,6 +20,9 @@ export const API_CONFIG = {
   BASE_URL: "http://192.168.0.6:5000/api", // ← CHANGE THIS!
   ML_API_URL: "http://192.168.0.6:8000", // Python Microservice
 
+  // ML Service URL (runs on different port - default 8000)
+  ML_SERVICE_URL: "http://192.168.0.32:8000", // ← ML service for face verification, OCR, GPS
+
   // Timeout in milliseconds (30 seconds for slower connections)
   TIMEOUT: 30000,
 };
