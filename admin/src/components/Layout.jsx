@@ -13,10 +13,11 @@ import {
   FileText,
   BookOpen,
   LogOut,
-  Menu,
-  X,
+  ChevronDown,
+  User,
+  Settings,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useRef, useEffect } from "react";
 
 const Layout = ({ children }) => {
   const user = useAppSelector(selectUser);
@@ -24,14 +25,27 @@ const Layout = ({ children }) => {
   const isAdmin = useAppSelector(selectIsAdmin);
   const dispatch = useAppDispatch();
   const navigate = useNavigate();
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
+  const dropdownRef = useRef(null);
 
   const handleLogout = () => {
     dispatch(logout());
     navigate("/login");
   };
 
-  // Updated navigation: Sessions only for teachers
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target)) {
+        setDropdownOpen(false);
+      }
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Navigation items based on role
   const navigationItems = [
     {
       name: "Dashboard",
@@ -60,116 +74,132 @@ const Layout = ({ children }) => {
   );
 
   return (
-    <div className="flex h-screen bg-gray-50">
-      {/* Sidebar */}
-      <aside
-        className={`sidebar fixed lg:static inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 lg:translate-x-0 flex flex-col ${
-          sidebarOpen ? "translate-x-0" : "-translate-x-full"
-        }`}
-      >
-        {/* Logo */}
-        <div className="flex items-center gap-3 px-4 py-6 border-b border-gray-200">
-          <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
-            <span className="text-xl font-bold text-white">GF</span>
-          </div>
-          <div>
-            <h1 className="font-bold text-gray-800">Gyanjyoti Foundation</h1>
-            <p className="text-xs text-gray-500 capitalize">{role} Panel</p>
-          </div>
-        </div>
+    <div className="min-h-screen bg-gradient-to-br from-purple-50 via-white to-purple-50">
+      {/* Top Navigation Bar */}
+      <nav className="top-nav sticky top-0 z-40 animate-slide-down">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="flex items-center justify-between h-16">
+            {/* Left: Logo and App Name */}
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-purple-600 to-purple-700 rounded-xl flex items-center justify-center shadow-md">
+                  <span className="text-xl font-bold text-white">UV</span>
+                </div>
+                <div>
+                  <h1 className="text-xl font-bold bg-gradient-to-r from-purple-600 to-purple-800 bg-clip-text text-transparent">
+                    UniVerify
+                  </h1>
+                  <p className="text-xs text-gray-500 capitalize">{role} Panel</p>
+                </div>
+              </div>
+            </div>
 
-        {/* Navigation */}
-        <nav className="flex-1 py-4">
-          {filteredNavigation.map((item) => {
-            const Icon = item.icon;
-            return (
-              <NavLink
-                key={item.path}
-                to={item.path}
-                className={({ isActive }) =>
-                  `sidebar-item ${isActive ? "active" : ""}`
-                }
-                onClick={() => setSidebarOpen(false)}
+            {/* Center: Navigation Links */}
+            <div className="hidden md:flex items-center gap-2">
+              {filteredNavigation.map((item) => {
+                const Icon = item.icon;
+                return (
+                  <NavLink
+                    key={item.path}
+                    to={item.path}
+                    className={({ isActive }) =>
+                      `nav-item ${isActive ? "active" : ""}`
+                    }
+                  >
+                    <Icon size={18} />
+                    <span className="text-sm font-medium">{item.name}</span>
+                  </NavLink>
+                );
+              })}
+            </div>
+
+            {/* Right: Profile Dropdown */}
+            <div className="relative" ref={dropdownRef}>
+              <button
+                onClick={() => setDropdownOpen(!dropdownOpen)}
+                className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-purple-50 transition-all duration-200"
               >
-                <Icon size={20} />
-                <span>{item.name}</span>
-              </NavLink>
-            );
-          })}
-        </nav>
+                <img
+                  src={
+                    user?.avatar ||
+                    `https://ui-avatars.com/api/?name=${user?.name}&background=9333EA&color=fff`
+                  }
+                  alt={user?.name}
+                  className="w-9 h-9 rounded-full border-2 border-purple-200"
+                />
+                <div className="hidden sm:block text-left">
+                  <p className="text-sm font-semibold text-gray-800">
+                    {user?.name}
+                  </p>
+                  <p className="text-xs text-gray-500 capitalize">{role}</p>
+                </div>
+                <ChevronDown
+                  size={16}
+                  className={`text-gray-500 transition-transform duration-200 ${dropdownOpen ? "rotate-180" : ""
+                    }`}
+                />
+              </button>
 
-        {/* User Profile */}
-        <div className="border-t border-gray-200 p-4">
-          <div className="flex items-center gap-3 mb-3">
-            <img
-              src={
-                user?.avatar ||
-                `https://ui-avatars.com/api/?name=${user?.name}&background=0099FF&color=fff`
-              }
-              alt={user?.name}
-              className="w-10 h-10 rounded-full"
-            />
-            <div className="flex-1 min-w-0">
-              <p className="text-sm font-medium text-gray-800 truncate">
-                {user?.name}
-              </p>
-              <p className="text-xs text-gray-500 truncate">{user?.email}</p>
+              {/* Dropdown Menu */}
+              {dropdownOpen && (
+                <div className="dropdown-menu">
+                  <div className="px-4 py-3 border-b border-purple-100">
+                    <p className="text-sm font-semibold text-gray-800">
+                      {user?.name}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">{user?.email}</p>
+                  </div>
+                  <div className="py-1">
+                    <button className="dropdown-item w-full">
+                      <User size={16} />
+                      <span>Profile</span>
+                    </button>
+                    <button className="dropdown-item w-full">
+                      <Settings size={16} />
+                      <span>Settings</span>
+                    </button>
+                  </div>
+                  <div className="border-t border-purple-100 py-1">
+                    <button
+                      onClick={handleLogout}
+                      className="dropdown-item w-full text-red-600 hover:bg-red-50 hover:text-red-700"
+                    >
+                      <LogOut size={16} />
+                      <span>Logout</span>
+                    </button>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-2 px-4 py-2 text-sm text-red-600 hover:bg-red-50 rounded-lg transition-colors"
-          >
-            <LogOut size={16} />
-            <span>Logout</span>
-          </button>
         </div>
-      </aside>
 
-      {/* Overlay for mobile */}
-      {sidebarOpen && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-50 z-40 lg:hidden"
-          onClick={() => setSidebarOpen(false)}
-        />
-      )}
-
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col overflow-hidden">
-        {/* Simplified Header - Mobile Only */}
-        <header className="lg:hidden bg-white border-b border-gray-200 px-4 py-3 flex items-center justify-between">
-          {/* Mobile Menu Button & Title */}
-          <div className="flex items-center gap-3">
-            <button
-              onClick={() => setSidebarOpen(!sidebarOpen)}
-              className="p-2 rounded-lg hover:bg-gray-100"
-            >
-              {sidebarOpen ? <X size={24} /> : <Menu size={24} />}
-            </button>
-            <h2 className="text-lg font-semibold text-gray-800 capitalize">
-              {role} Panel
-            </h2>
+        {/* Mobile Navigation */}
+        <div className="md:hidden border-t border-purple-100 px-4 py-2">
+          <div className="flex items-center gap-2 overflow-x-auto">
+            {filteredNavigation.map((item) => {
+              const Icon = item.icon;
+              return (
+                <NavLink
+                  key={item.path}
+                  to={item.path}
+                  className={({ isActive }) =>
+                    `nav-item whitespace-nowrap ${isActive ? "active" : ""}`
+                  }
+                >
+                  <Icon size={16} />
+                  <span className="text-xs font-medium">{item.name}</span>
+                </NavLink>
+              );
+            })}
           </div>
+        </div>
+      </nav>
 
-          {/* User Info */}
-          <div className="flex items-center gap-2">
-            <img
-              src={
-                user?.avatar ||
-                `https://ui-avatars.com/api/?name=${user?.name}&background=0099FF&color=fff`
-              }
-              alt={user?.name}
-              className="w-8 h-8 rounded-full"
-            />
-            <div className="hidden sm:block">
-              <p className="text-sm font-medium text-gray-800">{user?.name}</p>
-            </div>
-          </div>
-        </header>
-
-        {/* Page Content */}
-        <main className="flex-1 overflow-y-auto p-4 lg:p-6">{children}</main>
-      </div>
+      {/* Main Content Container */}
+      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 animate-fade-in">
+        {children}
+      </main>
     </div>
   );
 };

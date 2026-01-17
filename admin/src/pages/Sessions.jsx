@@ -20,7 +20,10 @@ import {
   Clock,
   MapPin,
   QrCode,
+  BookOpen,
+  Users,
 } from "lucide-react";
+import { motion } from "framer-motion";
 
 const Sessions = () => {
   const dispatch = useAppDispatch();
@@ -95,7 +98,6 @@ const Sessions = () => {
 
     try {
       if (editingSession) {
-        // Update existing session
         const response = await api.put(
           `/sessions/${editingSession._id}`,
           formData
@@ -104,11 +106,8 @@ const Sessions = () => {
           dispatch(updateSession(response.data));
         }
       } else {
-        // Create new session
-        // First get GPS location
         let gpsData = null;
         try {
-          // Using port 5000 (mock) which is confirmed working and returns the expected structure
           const gpsResponse = await axios.get("http://localhost:8000/teacher/gps");
 
           if (gpsResponse.data.success) {
@@ -122,7 +121,6 @@ const Sessions = () => {
           return;
         }
 
-        // If we are here, GPS worked. Proceed to create session.
         const { latitude, longitude, city, region, country, ip, timezone } = gpsData;
         const sessionData = {
           ...formData,
@@ -184,134 +182,158 @@ const Sessions = () => {
     setSelectedSession(null);
   };
 
+  const getStatusBadge = (status) => {
+    const badges = {
+      scheduled: "bg-purple-100 text-purple-700 border-purple-200",
+      completed: "bg-green-100 text-green-700 border-green-200",
+      cancelled: "bg-red-100 text-red-700 border-red-200",
+    };
+    return badges[status] || "bg-gray-100 text-gray-700 border-gray-200";
+  };
+
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 animate-fade-in">
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 animate-slide-in">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Sessions</h1>
-          <p className="text-gray-600 mt-1">Manage lectures and sessions</p>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">Sessions</h1>
+          <p className="text-gray-600">Manage your lectures and teaching sessions</p>
         </div>
         <button
           onClick={() => handleOpenModal()}
-          className="btn-primary flex items-center gap-2"
+          className="btn-primary flex items-center gap-2 transform hover:scale-105 transition-transform"
         >
           <Plus size={20} />
           Create Session
         </button>
       </div>
 
-      {/* Sessions Table */}
-      <div className="card overflow-hidden">
-        <div className="overflow-x-auto">
-          <table className="data-table">
-            <thead>
-              <tr>
-                <th>Subject</th>
-                <th>Topic</th>
-                <th>Class</th>
-                <th>Section</th>
-                <th>Date</th>
-                <th>Time</th>
-                <th>Status</th>
-                <th>Actions</th>
-              </tr>
-            </thead>
-            <tbody>
-              {loading ? (
-                <tr>
-                  <td colSpan="8" className="text-center py-8 text-gray-500">
-                    Loading sessions...
-                  </td>
-                </tr>
-              ) : sessions.length === 0 ? (
-                <tr>
-                  <td colSpan="8" className="text-center py-8 text-gray-500">
-                    No sessions found. Create your first session!
-                  </td>
-                </tr>
-              ) : (
-                sessions.map((session) => (
-                  <tr key={session._id}>
-                    <td className="font-medium text-gray-800">
-                      {session.subject}
-                    </td>
-                    <td>{session.topic || "-"}</td>
-                    <td>Class {session.class}</td>
-                    <td>Section {session.section}</td>
-                    <td>{formatDate(session.date)}</td>
-                    <td>
-                      {session.startTime} - {session.endTime}
-                    </td>
-                    <td>
-                      <span
-                        className={`px-2 py-1 rounded-full text-xs font-medium ${session.status === "scheduled"
-                          ? "bg-blue-100 text-blue-700"
-                          : session.status === "completed"
-                            ? "bg-green-100 text-green-700"
-                            : "bg-gray-100 text-gray-700"
-                          }`}
-                      >
-                        {session.status}
-                      </span>
-                    </td>
-                    <td>
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => handleOpenModal(session)}
-                          className="p-1 hover:bg-blue-50 rounded text-primary"
-                          title="Edit"
-                        >
-                          <Edit size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleGenerateQR(session)}
-                          className="p-1 hover:bg-green-50 rounded text-green-600"
-                          title="Generate QR"
-                          disabled={
-                            session.status === "completed" ||
-                            session.status === "cancelled"
-                          }
-                        >
-                          <QrCode size={16} />
-                        </button>
-                        <button
-                          onClick={() => handleDelete(session._id)}
-                          className="p-1 hover:bg-red-50 rounded text-red-600"
-                          title="Delete"
-                        >
-                          <Trash2 size={16} />
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
+      {/* Sessions Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {loading ? (
+          <div className="col-span-full card text-center py-12 text-gray-500">
+            <div className="animate-pulse">Loading sessions...</div>
+          </div>
+        ) : sessions.length === 0 ? (
+          <div className="col-span-full card text-center py-12">
+            <BookOpen className="mx-auto mb-4 text-purple-300" size={48} />
+            <p className="text-gray-500 mb-4">No sessions found</p>
+            <button
+              onClick={() => handleOpenModal()}
+              className="btn-secondary"
+            >
+              Create your first session
+            </button>
+          </div>
+        ) : (
+          sessions.map((session) => (
+            <div
+              key={session._id}
+              className="card card-hover group animate-scale-in"
+            >
+              {/* Session Header */}
+              <div className="flex items-start justify-between mb-4">
+                <div className="flex-1">
+                  <h3 className="text-xl font-bold text-gray-800 mb-1">
+                    {session.subject}
+                  </h3>
+                  {session.topic && (
+                    <p className="text-gray-600 text-sm">{session.topic}</p>
+                  )}
+                </div>
+                <span
+                  className={`px-3 py-1 rounded-full text-xs font-semibold border ${getStatusBadge(
+                    session.status
+                  )}`}
+                >
+                  {session.status}
+                </span>
+              </div>
+
+              {/* Session Details */}
+              <div className="space-y-3 mb-4">
+                <div className="flex items-center gap-3 text-gray-600">
+                  <Users size={16} className="text-purple-500" />
+                  <span className="text-sm">
+                    Class {session.class} - Section {session.section}
+                  </span>
+                </div>
+                <div className="flex items-center gap-3 text-gray-600">
+                  <Calendar size={16} className="text-purple-500" />
+                  <span className="text-sm">{formatDate(session.date)}</span>
+                </div>
+                <div className="flex items-center gap-3 text-gray-600">
+                  <Clock size={16} className="text-purple-500" />
+                  <span className="text-sm">
+                    {session.startTime} - {session.endTime}
+                  </span>
+                </div>
+                {session.gpsLocation && (
+                  <div className="flex items-center gap-3 text-gray-600">
+                    <MapPin size={16} className="text-purple-500" />
+                    <span className="text-sm">
+                      {session.gpsLocation.city}, {session.gpsLocation.region}
+                    </span>
+                  </div>
+                )}
+              </div>
+
+              {/* Actions */}
+              <div className="flex items-center gap-2 pt-4 border-t border-purple-100">
+                <button
+                  onClick={() => handleOpenModal(session)}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-all duration-200 font-medium"
+                  title="Edit"
+                >
+                  <Edit size={16} />
+                  <span>Edit</span>
+                </button>
+                <button
+                  onClick={() => handleGenerateQR(session)}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-green-600 hover:bg-green-50 rounded-lg transition-all duration-200 font-medium"
+                  title="Generate QR"
+                  disabled={
+                    session.status === "completed" ||
+                    session.status === "cancelled"
+                  }
+                >
+                  <QrCode size={16} />
+                  <span>QR Code</span>
+                </button>
+                <button
+                  onClick={() => handleDelete(session._id)}
+                  className="flex-1 flex items-center justify-center gap-2 px-4 py-2 text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200 font-medium"
+                  title="Delete"
+                >
+                  <Trash2 size={16} />
+                  <span>Delete</span>
+                </button>
+              </div>
+            </div>
+          ))
+        )}
       </div>
 
-      {/* Modal */}
+      {/* Create/Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-800">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-scale-in">
+            <div className="flex items-center justify-between p-6 border-b border-purple-100">
+              <h2 className="text-2xl font-bold text-gray-800">
                 {editingSession ? "Edit Session" : "Create New Session"}
               </h2>
               <button
                 onClick={handleCloseModal}
-                className="p-1 hover:bg-gray-100 rounded"
+                className="p-2 hover:bg-purple-50 rounded-lg transition-colors"
               >
                 <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="p-6 space-y-5">
               <div className="grid grid-cols-2 gap-4">
                 <div className="col-span-2 md:col-span-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Subject *
                   </label>
                   <input
@@ -320,13 +342,13 @@ const Sessions = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, subject: e.target.value })
                     }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className="w-full px-4 py-3 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     required
                   />
                 </div>
 
                 <div className="col-span-2 md:col-span-1">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Topic
                   </label>
                   <input
@@ -335,14 +357,14 @@ const Sessions = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, topic: e.target.value })
                     }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className="w-full px-4 py-3 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                   />
                 </div>
               </div>
 
               <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Class *
                   </label>
                   <select
@@ -350,7 +372,7 @@ const Sessions = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, class: e.target.value })
                     }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className="w-full px-4 py-3 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     required
                   >
                     <option value="10">Class 10</option>
@@ -360,7 +382,7 @@ const Sessions = () => {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Section *
                   </label>
                   <select
@@ -368,7 +390,7 @@ const Sessions = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, section: e.target.value })
                     }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className="w-full px-4 py-3 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     required
                   >
                     <option value="A">Section A</option>
@@ -380,7 +402,7 @@ const Sessions = () => {
 
               <div className="grid grid-cols-3 gap-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Date *
                   </label>
                   <input
@@ -389,13 +411,13 @@ const Sessions = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, date: e.target.value })
                     }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className="w-full px-4 py-3 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     Start Time *
                   </label>
                   <input
@@ -404,13 +426,13 @@ const Sessions = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, startTime: e.target.value })
                     }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className="w-full px-4 py-3 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     required
                   />
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                  <label className="block text-sm font-semibold text-gray-700 mb-2">
                     End Time *
                   </label>
                   <input
@@ -419,7 +441,7 @@ const Sessions = () => {
                     onChange={(e) =>
                       setFormData({ ...formData, endTime: e.target.value })
                     }
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                    className="w-full px-4 py-3 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     required
                   />
                 </div>
@@ -432,7 +454,7 @@ const Sessions = () => {
                 <button
                   type="button"
                   onClick={handleCloseModal}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                  className="flex-1 btn-secondary"
                 >
                   Cancel
                 </button>
@@ -444,24 +466,24 @@ const Sessions = () => {
 
       {/* QR Code Modal */}
       {showQRModal && selectedSession && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-md w-full">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-800">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-white rounded-2xl max-w-md w-full shadow-2xl animate-scale-in">
+            <div className="flex items-center justify-between p-6 border-b border-purple-100">
+              <h2 className="text-2xl font-bold text-gray-800">
                 Session QR Code
               </h2>
               <button
                 onClick={handleCloseQRModal}
-                className="p-1 hover:bg-gray-100 rounded"
+                className="p-2 hover:bg-purple-50 rounded-lg transition-colors"
               >
                 <X size={20} />
               </button>
             </div>
 
-            <div className="p-6 space-y-4">
+            <div className="p-6 space-y-5">
               {/* Session Info */}
-              <div className="bg-gray-50 rounded-lg p-4 space-y-2">
-                <h3 className="font-semibold text-gray-800">
+              <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-xl p-4 space-y-2 border border-purple-200">
+                <h3 className="font-bold text-gray-800 text-lg">
                   {selectedSession.subject}
                 </h3>
                 {selectedSession.topic && (
@@ -483,8 +505,8 @@ const Sessions = () => {
               </div>
 
               {/* QR Code Display */}
-              <div className="flex flex-col items-center justify-center bg-white border-2 border-gray-200 rounded-lg p-6">
-                <div className="bg-white p-4 rounded-lg">
+              <div className="flex flex-col items-center justify-center bg-white border-2 border-purple-200 rounded-xl p-6">
+                <div className="bg-white p-4 rounded-lg shadow-inner">
                   <QRCodeCanvas
                     value={qrToken}
                     size={256}
@@ -492,8 +514,8 @@ const Sessions = () => {
                     includeMargin={true}
                   />
                 </div>
-                <p className="text-sm text-gray-500 mt-4 text-center">
-                  Students can scan this QR code to mark their attendance
+                <p className="text-sm text-gray-600 mt-4 text-center font-medium">
+                  Students can scan this QR code to mark attendance
                 </p>
                 <p className="text-xs text-gray-400 mt-2">
                   Valid until session ends
@@ -501,14 +523,12 @@ const Sessions = () => {
               </div>
 
               {/* Actions */}
-              <div className="flex gap-3">
-                <button
-                  onClick={handleCloseQRModal}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
-                >
-                  Close
-                </button>
-              </div>
+              <button
+                onClick={handleCloseQRModal}
+                className="w-full btn-primary"
+              >
+                Close
+              </button>
             </div>
           </div>
         </div>

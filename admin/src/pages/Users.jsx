@@ -14,16 +14,20 @@ import {
   Search,
   UserCheck,
   GraduationCap,
+  Mail,
+  Phone,
+  BookOpen,
 } from "lucide-react";
+import { motion } from "framer-motion";
 
 const Users = () => {
   const dispatch = useAppDispatch();
   const { students, loading } = useAppSelector((state) => state.attendance);
-  const [userType, setUserType] = useState("students"); // 'students' or 'teachers'
+  const [userType, setUserType] = useState("students");
   const [searchTerm, setSearchTerm] = useState("");
   const [classFilter, setClassFilter] = useState("all");
   const [showModal, setShowModal] = useState(false);
-  const [modalMode, setModalMode] = useState("add"); // 'add' or 'edit'
+  const [modalMode, setModalMode] = useState("add");
   const [teachers, setTeachers] = useState([]);
   const [selectedUser, setSelectedUser] = useState(null);
   const [formData, setFormData] = useState({
@@ -45,7 +49,6 @@ const Users = () => {
     dispatch(setLoading(true));
     try {
       if (userType === "students") {
-        // Extract just the number from "Class 10" format
         const classNumber =
           classFilter !== "all" ? classFilter.split(" ")[1] : null;
         const query = classNumber
@@ -109,8 +112,7 @@ const Users = () => {
   const handleDeleteUser = async (userId) => {
     if (
       !window.confirm(
-        `Are you sure you want to delete this ${
-          userType === "students" ? "student" : "teacher"
+        `Are you sure you want to delete this ${userType === "students" ? "student" : "teacher"
         }?`
       )
     ) {
@@ -124,8 +126,7 @@ const Users = () => {
       if (response.success) {
         fetchUsers();
         alert(
-          `${
-            userType === "students" ? "Student" : "Teacher"
+          `${userType === "students" ? "Student" : "Teacher"
           } deleted successfully!`
         );
       }
@@ -176,16 +177,13 @@ const Users = () => {
           setShowModal(false);
           if (response.credentials) {
             alert(
-              `${
-                userType === "students" ? "Student" : "Teacher"
-              } added successfully!\n\nLogin Credentials:\nUsername: ${
-                response.credentials.username
+              `${userType === "students" ? "Student" : "Teacher"
+              } added successfully!\n\nLogin Credentials:\nUsername: ${response.credentials.username
               }\nPassword: ${response.credentials.password}`
             );
           } else {
             alert(
-              `${
-                userType === "students" ? "Student" : "Teacher"
+              `${userType === "students" ? "Student" : "Teacher"
               } added successfully!`
             );
           }
@@ -228,8 +226,7 @@ const Users = () => {
           fetchUsers();
           setShowModal(false);
           alert(
-            `${
-              userType === "students" ? "Student" : "Teacher"
+            `${userType === "students" ? "Student" : "Teacher"
             } updated successfully!`
           );
         }
@@ -241,18 +238,7 @@ const Users = () => {
   };
 
   const classes = ["6", "7", "8", "9", "10", "11", "12"];
-  const classDisplay = {
-    6: "Class 6",
-    7: "Class 7",
-    8: "Class 8",
-    9: "Class 9",
-    10: "Class 10",
-    11: "Class 11",
-    12: "Class 12",
-  };
-
   const sections = ["A", "B", "C", "D"];
-
   const subjects = [
     "Mathematics",
     "Science",
@@ -267,49 +253,78 @@ const Users = () => {
   const filteredUsers =
     userType === "students"
       ? students.filter(
-          (student) =>
-            student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            student.rollNo.toString().includes(searchTerm)
-        )
+        (student) =>
+          student.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          student.rollNo.toString().includes(searchTerm)
+      )
       : teachers.filter(
-          (teacher) =>
-            teacher.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-            teacher.email?.toLowerCase().includes(searchTerm.toLowerCase())
-        );
+        (teacher) =>
+          teacher.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+          teacher.email?.toLowerCase().includes(searchTerm.toLowerCase())
+      );
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8 animate-fade-in">
       {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
+      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 animate-slide-in">
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">Users Management</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">Users Management</h1>
+          <p className="text-gray-600">
             Manage students and teachers across classes
           </p>
         </div>
         <button
           onClick={handleAddUser}
-          className="btn-primary flex items-center gap-2"
+          className="btn-primary flex items-center gap-2 transform hover:scale-105 transition-transform"
         >
           <Plus size={20} />
           Add {userType === "students" ? "Student" : "Teacher"}
         </button>
       </div>
 
-      {/* User Type Toggle */}
-      <div className="card">
+      {/* Stats Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-scale-in">
+        <div className="card card-hover">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 mb-1">Total Students</p>
+              <p className="text-3xl font-bold text-gray-800">{students.length}</p>
+              <p className="text-xs text-gray-500 mt-1">Across all classes</p>
+            </div>
+            <div className="p-4 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-lg">
+              <GraduationCap size={24} className="text-white" />
+            </div>
+          </div>
+        </div>
+
+        <div className="card card-hover">
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-sm font-medium text-gray-600 mb-1">Total Teachers</p>
+              <p className="text-3xl font-bold text-gray-800">{teachers.length}</p>
+              <p className="text-xs text-gray-500 mt-1">Active faculty</p>
+            </div>
+            <div className="p-4 bg-gradient-to-br from-purple-500 to-purple-600 rounded-xl shadow-lg">
+              <UserCheck size={24} className="text-white" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Filters Card */}
+      <div className="card animate-fade-in">
         <div className="flex flex-col md:flex-row gap-4">
+          {/* User Type Toggle */}
           <div className="flex gap-2">
             <button
               onClick={() => {
                 setUserType("students");
                 setClassFilter("all");
               }}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
-                userType === "students"
-                  ? "bg-primary text-white"
-                  : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
-              }`}
+              className={`px-5 py-2.5 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${userType === "students"
+                ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-md"
+                : "bg-white text-gray-700 border-2 border-purple-200 hover:bg-purple-50 hover:border-purple-300"
+                }`}
             >
               <GraduationCap size={20} />
               Students
@@ -319,11 +334,10 @@ const Users = () => {
                 setUserType("teachers");
                 setClassFilter("all");
               }}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors flex items-center gap-2 ${
-                userType === "teachers"
-                  ? "bg-primary text-white"
-                  : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
-              }`}
+              className={`px-5 py-2.5 rounded-lg font-medium transition-all duration-200 flex items-center gap-2 ${userType === "teachers"
+                ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-md"
+                : "bg-white text-gray-700 border-2 border-purple-200 hover:bg-purple-50 hover:border-purple-300"
+                }`}
             >
               <UserCheck size={20} />
               Teachers
@@ -342,7 +356,7 @@ const Users = () => {
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
                 placeholder={`Search ${userType}...`}
-                className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full pl-10 pr-4 py-2.5 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
               />
             </div>
           </div>
@@ -353,7 +367,7 @@ const Users = () => {
               <select
                 value={classFilter}
                 onChange={(e) => setClassFilter(e.target.value)}
-                className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                className="w-full px-4 py-2.5 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
               >
                 <option value="all">All Classes</option>
                 {classes.map((cls) => (
@@ -367,55 +381,63 @@ const Users = () => {
         </div>
       </div>
 
-      {/* Users Table */}
-      <div className="card">
+      {/* Users Grid/Table */}
+      <div className="card animate-scale-in">
         {loading ? (
-          <div className="text-center py-12 text-gray-500">Loading...</div>
-        ) : filteredUsers.length === 0 ? (
           <div className="text-center py-12 text-gray-500">
-            No {userType} found. Add your first{" "}
-            {userType === "students" ? "student" : "teacher"}!
+            <div className="animate-pulse">Loading...</div>
+          </div>
+        ) : filteredUsers.length === 0 ? (
+          <div className="text-center py-12">
+            <UsersIcon className="mx-auto mb-4 text-purple-300" size={48} />
+            <p className="text-gray-500 mb-4">
+              No {userType} found. Add your first{" "}
+              {userType === "students" ? "student" : "teacher"}!
+            </p>
+            <button onClick={handleAddUser} className="btn-secondary">
+              Add {userType === "students" ? "Student" : "Teacher"}
+            </button>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
-                <tr className="border-b-2 border-gray-200">
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                <tr className="border-b-2 border-purple-200">
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 bg-gradient-to-r from-purple-50 to-purple-100">
                     #
                   </th>
-                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                  <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 bg-gradient-to-r from-purple-50 to-purple-100">
                     Name
                   </th>
                   {userType === "students" ? (
                     <>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 bg-gradient-to-r from-purple-50 to-purple-100">
                         Roll No
                       </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 bg-gradient-to-r from-purple-50 to-purple-100">
                         Class
                       </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 bg-gradient-to-r from-purple-50 to-purple-100">
                         Section
                       </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 bg-gradient-to-r from-purple-50 to-purple-100">
                         Gender
                       </th>
                     </>
                   ) : (
                     <>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 bg-gradient-to-r from-purple-50 to-purple-100">
                         Email
                       </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 bg-gradient-to-r from-purple-50 to-purple-100">
                         Subject
                       </th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700">
+                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 bg-gradient-to-r from-purple-50 to-purple-100">
                         Phone
                       </th>
                     </>
                   )}
-                  <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700">
+                  <th className="px-4 py-3 text-center text-sm font-semibold text-gray-700 bg-gradient-to-r from-purple-50 to-purple-100">
                     Actions
                   </th>
                 </tr>
@@ -424,7 +446,8 @@ const Users = () => {
                 {filteredUsers.map((user, index) => (
                   <tr
                     key={user._id}
-                    className="border-b border-gray-100 hover:bg-gray-50"
+                    className={`border-b border-purple-50 hover:bg-purple-50/50 transition-colors ${index % 2 === 0 ? "bg-white" : "bg-purple-50/20"
+                      }`}
                   >
                     <td className="px-4 py-3 text-sm text-gray-600">
                       {index + 1}
@@ -450,13 +473,22 @@ const Users = () => {
                     ) : (
                       <>
                         <td className="px-4 py-3 text-sm text-gray-600">
-                          {user.email}
+                          <div className="flex items-center gap-2">
+                            <Mail size={14} className="text-purple-500" />
+                            {user.email}
+                          </div>
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">
-                          {user.subject || "N/A"}
+                          <div className="flex items-center gap-2">
+                            <BookOpen size={14} className="text-purple-500" />
+                            {user.subject || "N/A"}
+                          </div>
                         </td>
                         <td className="px-4 py-3 text-sm text-gray-600">
-                          {user.phoneNumber || "N/A"}
+                          <div className="flex items-center gap-2">
+                            <Phone size={14} className="text-purple-500" />
+                            {user.phoneNumber || "N/A"}
+                          </div>
                         </td>
                       </>
                     )}
@@ -464,14 +496,14 @@ const Users = () => {
                       <div className="flex items-center justify-center gap-2">
                         <button
                           onClick={() => handleEditUser(user)}
-                          className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition-colors"
+                          className="p-2 text-purple-600 hover:bg-purple-50 rounded-lg transition-all duration-200"
                           title="Edit"
                         >
                           <Edit size={18} />
                         </button>
                         <button
                           onClick={() => handleDeleteUser(user._id)}
-                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+                          className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-all duration-200"
                           title="Delete"
                         >
                           <Trash2 size={18} />
@@ -488,25 +520,25 @@ const Users = () => {
 
       {/* Add/Edit Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full max-h-[90vh] overflow-y-auto">
-            <div className="flex items-center justify-between p-6 border-b border-gray-200">
-              <h2 className="text-xl font-semibold text-gray-800">
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center p-4 z-50 animate-fade-in">
+          <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl animate-scale-in">
+            <div className="flex items-center justify-between p-6 border-b border-purple-100">
+              <h2 className="text-2xl font-bold text-gray-800">
                 {modalMode === "add" ? "Add" : "Edit"}{" "}
                 {userType === "students" ? "Student" : "Teacher"}
               </h2>
               <button
                 onClick={() => setShowModal(false)}
-                className="p-1 hover:bg-gray-100 rounded"
+                className="p-2 hover:bg-purple-50 rounded-lg transition-colors"
               >
                 <X size={20} />
               </button>
             </div>
 
-            <form onSubmit={handleSubmit} className="p-6 space-y-4">
+            <form onSubmit={handleSubmit} className="p-6 space-y-5">
               {/* Name */}
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-semibold text-gray-700 mb-2">
                   Full Name *
                 </label>
                 <input
@@ -515,7 +547,7 @@ const Users = () => {
                   onChange={(e) =>
                     setFormData({ ...formData, name: e.target.value })
                   }
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full px-4 py-3 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                   required
                 />
               </div>
@@ -524,7 +556,7 @@ const Users = () => {
                 <>
                   {/* Roll Number */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Roll Number *
                     </label>
                     <input
@@ -533,7 +565,7 @@ const Users = () => {
                       onChange={(e) =>
                         setFormData({ ...formData, rollNo: e.target.value })
                       }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                      className="w-full px-4 py-3 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                       required
                     />
                   </div>
@@ -541,7 +573,7 @@ const Users = () => {
                   {/* Class and Section */}
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
                         Class *
                       </label>
                       <input
@@ -550,13 +582,13 @@ const Users = () => {
                         onChange={(e) =>
                           setFormData({ ...formData, class: e.target.value })
                         }
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                        className="w-full px-4 py-3 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                         placeholder="e.g., 10, 11, 12"
                         required
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
                         Section *
                       </label>
                       <select
@@ -564,7 +596,7 @@ const Users = () => {
                         onChange={(e) =>
                           setFormData({ ...formData, section: e.target.value })
                         }
-                        className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                        className="w-full px-4 py-3 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                         required
                       >
                         {sections.map((sec) => (
@@ -578,7 +610,7 @@ const Users = () => {
 
                   {/* Gender */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Gender *
                     </label>
                     <select
@@ -586,7 +618,7 @@ const Users = () => {
                       onChange={(e) =>
                         setFormData({ ...formData, gender: e.target.value })
                       }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                      className="w-full px-4 py-3 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                       required
                     >
                       <option>Male</option>
@@ -597,7 +629,7 @@ const Users = () => {
 
                   {/* Profile Photo */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Profile Photo
                     </label>
                     <input
@@ -609,13 +641,13 @@ const Users = () => {
                           profilePhoto: e.target.files[0],
                         })
                       }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                      className="w-full px-4 py-3 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     />
                   </div>
 
                   {/* ID Card */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
                       ID Card Image
                     </label>
                     <input
@@ -624,7 +656,7 @@ const Users = () => {
                       onChange={(e) =>
                         setFormData({ ...formData, idCard: e.target.files[0] })
                       }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                      className="w-full px-4 py-3 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     />
                   </div>
                 </>
@@ -632,7 +664,7 @@ const Users = () => {
                 <>
                   {/* Email */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Email *
                     </label>
                     <input
@@ -641,14 +673,14 @@ const Users = () => {
                       onChange={(e) =>
                         setFormData({ ...formData, email: e.target.value })
                       }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                      className="w-full px-4 py-3 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                       required
                     />
                   </div>
 
                   {/* Subject */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Subject *
                     </label>
                     <select
@@ -656,7 +688,7 @@ const Users = () => {
                       onChange={(e) =>
                         setFormData({ ...formData, subject: e.target.value })
                       }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                      className="w-full px-4 py-3 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                       required
                     >
                       {subjects.map((sub) => (
@@ -669,7 +701,7 @@ const Users = () => {
 
                   {/* Phone Number */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Phone Number
                     </label>
                     <input
@@ -681,13 +713,13 @@ const Users = () => {
                           phoneNumber: e.target.value,
                         })
                       }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                      className="w-full px-4 py-3 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     />
                   </div>
 
                   {/* Password */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Password{" "}
                       {modalMode === "add"
                         ? "*"
@@ -699,7 +731,7 @@ const Users = () => {
                       onChange={(e) =>
                         setFormData({ ...formData, password: e.target.value })
                       }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                      className="w-full px-4 py-3 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                       required={modalMode === "add"}
                       minLength={6}
                     />
@@ -712,7 +744,7 @@ const Users = () => {
 
                   {/* Profile Photo */}
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <label className="block text-sm font-semibold text-gray-700 mb-2">
                       Profile Photo
                     </label>
                     <input
@@ -724,7 +756,7 @@ const Users = () => {
                           profilePhoto: e.target.files[0],
                         })
                       }
-                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+                      className="w-full px-4 py-3 border border-purple-200 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
                     />
                   </div>
                 </>
@@ -738,7 +770,7 @@ const Users = () => {
                 <button
                   type="button"
                   onClick={() => setShowModal(false)}
-                  className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50"
+                  className="flex-1 btn-secondary"
                 >
                   Cancel
                 </button>

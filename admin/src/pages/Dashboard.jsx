@@ -30,7 +30,10 @@ import {
   TrendingUp,
   Calendar,
   Clock,
+  Activity,
+  Award,
 } from "lucide-react";
+import { motion } from "framer-motion";
 
 const Dashboard = () => {
   const dispatch = useAppDispatch();
@@ -55,13 +58,11 @@ const Dashboard = () => {
   const fetchDashboardData = async () => {
     dispatch(setLoading(true));
     try {
-      // Fetch attendance stats
       const attendanceRes = await api.get("/attendance/stats");
       if (attendanceRes.success) {
         setStats((prev) => ({ ...prev, ...attendanceRes.data }));
       }
 
-      // Fetch students
       const studentsRes = await api.get(
         "/students?class=Class 10&section=10 A"
       );
@@ -69,7 +70,6 @@ const Dashboard = () => {
         dispatch(setStudents(studentsRes.data));
       }
 
-      // Fetch sessions
       const sessionsRes = await api.get("/sessions");
       if (sessionsRes.success) {
         dispatch(setSessions(sessionsRes.data));
@@ -79,13 +79,11 @@ const Dashboard = () => {
         }));
       }
 
-      // Fetch files count
       const filesRes = await api.get("/files");
       if (filesRes.success) {
         setStats((prev) => ({ ...prev, totalFiles: filesRes.data.length }));
       }
 
-      // Generate daily attendance data for admin view
       if (isAdmin) {
         const dailyData = generateDailyAttendanceData();
         setDailyAttendanceData(dailyData);
@@ -97,7 +95,6 @@ const Dashboard = () => {
     }
   };
 
-  // Generate mock daily attendance data for admin view
   const generateDailyAttendanceData = () => {
     const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
     return days.map((day) => ({
@@ -110,14 +107,12 @@ const Dashboard = () => {
     }));
   };
 
-  // Pie chart data - for teacher: session attendance, for admin: overall attendance
   const pieData = [
-    { name: "Present", value: stats.present, color: "#0099FF" },
-    { name: "Absent", value: stats.absent, color: "#FF6B35" },
+    { name: "Present", value: stats.present, color: "#10B981" },
+    { name: "Absent", value: stats.absent, color: "#EF4444" },
     { name: "Leave", value: stats.leave, color: "#9CA3AF" },
   ];
 
-  // Bar chart data for teacher (weekly session completion)
   const teacherBarData = [
     { name: "Mon", completed: 5, scheduled: 5 },
     { name: "Tue", completed: 4, scheduled: 5 },
@@ -127,30 +122,69 @@ const Dashboard = () => {
     { name: "Sat", completed: 2, scheduled: 3 },
   ];
 
-  const StatCard = ({ icon: Icon, title, value, subtitle, color }) => (
-    <div className="card hover:shadow-md transition-shadow">
+  const StatCard = ({ icon: Icon, title, value, subtitle, gradient, trend }) => (
+    <motion.div
+      className="card card-hover group"
+      style={{
+        boxShadow: '0 10px 30px rgba(147, 51, 234, 0.15), 0 5px 15px rgba(147, 51, 234, 0.1)',
+      }}
+      whileHover={{
+        y: -5,
+        boxShadow: '0 15px 40px rgba(147, 51, 234, 0.2), 0 8px 20px rgba(147, 51, 234, 0.15)',
+      }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.3 }}
+    >
       <div className="flex items-start justify-between">
-        <div>
-          <p className="text-sm text-gray-600 mb-1">{title}</p>
-          <p className="text-3xl font-bold text-gray-800">{value}</p>
-          {subtitle && <p className="text-sm text-gray-500 mt-1">{subtitle}</p>}
+        <div className="flex-1">
+          <div className="flex items-center gap-2 mb-2">
+            <p className="text-sm font-medium text-gray-600">{title}</p>
+            {trend && (
+              <motion.span
+                className={`text-xs px-2 py-0.5 rounded-full ${trend > 0 ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-700'
+                  }`}
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                transition={{ delay: 0.2 }}
+              >
+                {trend > 0 ? '+' : ''}{trend}%
+              </motion.span>
+            )}
+          </div>
+          <p className="text-3xl font-bold text-gray-800 mb-1">{value}</p>
+          {subtitle && <p className="text-sm text-gray-500">{subtitle}</p>}
         </div>
-        <div className={`p-3 rounded-lg ${color}`}>
+        <motion.div
+          className={`p-4 rounded-xl ${gradient} shadow-lg`}
+          whileHover={{ scale: 1.1, rotate: 5 }}
+          transition={{ type: "spring", stiffness: 300 }}
+        >
           <Icon size={24} className="text-white" />
-        </div>
+        </motion.div>
       </div>
-    </div>
+    </motion.div>
   );
 
   return (
-    <div className="space-y-6">
+    <motion.div
+      className="space-y-8"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      transition={{ duration: 0.5 }}
+    >
       {/* Header */}
-      <div className="flex items-center justify-between">
+      <motion.div
+        className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4"
+        initial={{ opacity: 0, y: -20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.4 }}
+      >
         <div>
-          <h1 className="text-2xl font-bold text-gray-800">
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">
             {isAdmin ? "Admin Dashboard" : "Teacher Dashboard"}
           </h1>
-          <p className="text-gray-600 mt-1">
+          <p className="text-gray-600">
             {isAdmin
               ? "Overview of school-wide attendance and statistics"
               : "Overview of your sessions and attendance"}
@@ -159,28 +193,46 @@ const Dashboard = () => {
 
         {/* Filter Buttons */}
         <div className="flex gap-2">
-          <button
+          <motion.button
             onClick={() => setFilter("week")}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              filter === "week"
-                ? "bg-primary text-white"
-                : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
-            }`}
+            className={`px-5 py-2.5 rounded-lg font-medium transition-all duration-200 ${filter === "week"
+                ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-md"
+                : "bg-white text-gray-700 border-2 border-purple-200 hover:bg-purple-50 hover:border-purple-300"
+              }`}
+            style={{
+              boxShadow: filter === "week"
+                ? '0 8px 20px rgba(147, 51, 234, 0.3)'
+                : '0 4px 12px rgba(147, 51, 234, 0.1)',
+            }}
+            whileHover={{
+              scale: 1.05,
+              boxShadow: '0 10px 25px rgba(147, 51, 234, 0.35)',
+            }}
+            whileTap={{ scale: 0.95 }}
           >
             Week
-          </button>
-          <button
+          </motion.button>
+          <motion.button
             onClick={() => setFilter("month")}
-            className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-              filter === "month"
-                ? "bg-primary text-white"
-                : "bg-white text-gray-700 border border-gray-300 hover:bg-gray-50"
-            }`}
+            className={`px-5 py-2.5 rounded-lg font-medium transition-all duration-200 ${filter === "month"
+                ? "bg-gradient-to-r from-purple-600 to-purple-700 text-white shadow-md"
+                : "bg-white text-gray-700 border-2 border-purple-200 hover:bg-purple-50 hover:border-purple-300"
+              }`}
+            style={{
+              boxShadow: filter === "month"
+                ? '0 8px 20px rgba(147, 51, 234, 0.3)'
+                : '0 4px 12px rgba(147, 51, 234, 0.1)',
+            }}
+            whileHover={{
+              scale: 1.05,
+              boxShadow: '0 10px 25px rgba(147, 51, 234, 0.35)',
+            }}
+            whileTap={{ scale: 0.95 }}
           >
             Month
-          </button>
+          </motion.button>
         </div>
-      </div>
+      </motion.div>
 
       {/* Stats Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -191,28 +243,32 @@ const Dashboard = () => {
               title="Total Students"
               value={stats.totalStudents}
               subtitle="Active"
-              color="bg-blue-500"
+              gradient="stat-card-blue"
+              trend={5}
             />
             <StatCard
-              icon={Calendar}
+              icon={Activity}
               title="Avg Daily Attendance"
               value={`${stats.presentPercentage}%`}
               subtitle="This month"
-              color="bg-green-500"
+              gradient="stat-card-green"
+              trend={3}
             />
             <StatCard
               icon={BookOpen}
               title="Total Sessions Today"
               value="8"
               subtitle="Across all classes"
-              color="bg-purple-500"
+              gradient="stat-card-purple"
+              trend={-2}
             />
             <StatCard
               icon={FileText}
               title="Notices"
               value={stats.totalFiles}
               subtitle="Published"
-              color="bg-orange-500"
+              gradient="stat-card-orange"
+              trend={12}
             />
           </>
         ) : (
@@ -222,28 +278,32 @@ const Dashboard = () => {
               title="My Sessions"
               value={stats.totalSessions}
               subtitle="All time"
-              color="bg-blue-500"
+              gradient="stat-card-blue"
+              trend={8}
             />
             <StatCard
               icon={Calendar}
               title="Completed Today"
               value="3"
               subtitle="Out of 5 sessions"
-              color="bg-green-500"
+              gradient="stat-card-green"
+              trend={0}
             />
             <StatCard
-              icon={Users}
+              icon={Award}
               title="Avg Attendance"
               value={`${stats.presentPercentage}%`}
               subtitle="In my sessions"
-              color="bg-purple-500"
+              gradient="stat-card-purple"
+              trend={5}
             />
             <StatCard
               icon={FileText}
               title="Materials Shared"
               value={stats.totalFiles}
               subtitle="This month"
-              color="bg-orange-500"
+              gradient="stat-card-pink"
+              trend={15}
             />
           </>
         )}
@@ -251,68 +311,111 @@ const Dashboard = () => {
 
       {/* Charts Row */}
       {isAdmin ? (
-        /* Admin View - Daily Student Attendance */
         <div className="grid grid-cols-1 gap-6">
-          {/* Line Chart - Daily Student Attendance Trend */}
-          <div className="card">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              Daily Student Attendance (This Week)
-            </h3>
+          <motion.div
+            className="card"
+            style={{
+              boxShadow: '0 10px 30px rgba(147, 51, 234, 0.12)',
+            }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-gray-800">
+                Daily Student Attendance Trend
+              </h3>
+              <div className="flex items-center gap-2 text-sm text-gray-500">
+                <Clock size={16} />
+                <span>This Week</span>
+              </div>
+            </div>
             <ResponsiveContainer width="100%" height={350}>
               <LineChart data={dailyAttendanceData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="day" />
-                <YAxis />
-                <Tooltip />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E9D5FF" />
+                <XAxis dataKey="day" stroke="#6B7280" />
+                <YAxis stroke="#6B7280" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#fff",
+                    border: "1px solid #E9D5FF",
+                    borderRadius: "0.75rem",
+                  }}
+                />
                 <Legend />
                 <Line
                   type="monotone"
                   dataKey="present"
-                  stroke="#0099FF"
-                  strokeWidth={2}
+                  stroke="#10B981"
+                  strokeWidth={3}
                   name="Present"
+                  dot={{ fill: "#10B981", r: 5 }}
                 />
                 <Line
                   type="monotone"
                   dataKey="absent"
-                  stroke="#FF6B35"
-                  strokeWidth={2}
+                  stroke="#EF4444"
+                  strokeWidth={3}
                   name="Absent"
+                  dot={{ fill: "#EF4444", r: 5 }}
                 />
                 <Line
                   type="monotone"
                   dataKey="leave"
                   stroke="#9CA3AF"
-                  strokeWidth={2}
+                  strokeWidth={3}
                   name="On Leave"
+                  dot={{ fill: "#9CA3AF", r: 5 }}
                 />
               </LineChart>
             </ResponsiveContainer>
-          </div>
+          </motion.div>
 
-          {/* Bar Chart - Sessions per Day */}
-          <div className="card">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">
-              Total Sessions Per Day
-            </h3>
+          <motion.div
+            className="card"
+            style={{
+              boxShadow: '0 10px 30px rgba(147, 51, 234, 0.12)',
+            }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-xl font-semibold text-gray-800">
+                Total Sessions Per Day
+              </h3>
+              <TrendingUp className="text-purple-600" size={20} />
+            </div>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={dailyAttendanceData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="day" />
-                <YAxis />
-                <Tooltip />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E9D5FF" />
+                <XAxis dataKey="day" stroke="#6B7280" />
+                <YAxis stroke="#6B7280" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#fff",
+                    border: "1px solid #E9D5FF",
+                    borderRadius: "0.75rem",
+                  }}
+                />
                 <Legend />
-                <Bar dataKey="sessions" fill="#8B5CF6" name="Sessions" />
+                <Bar dataKey="sessions" fill="#9333EA" name="Sessions" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          </div>
+          </motion.div>
         </div>
       ) : (
-        /* Teacher View - Session-based Statistics */
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Pie Chart - Session Attendance Distribution */}
-          <div className="card">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+          <motion.div
+            className="card"
+            style={{
+              boxShadow: '0 10px 30px rgba(147, 51, 234, 0.12)',
+            }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.2 }}
+          >
+            <h3 className="text-xl font-semibold text-gray-800 mb-6">
               My Sessions - Attendance Distribution
             </h3>
             <ResponsiveContainer width="100%" height={300}>
@@ -325,7 +428,7 @@ const Dashboard = () => {
                   label={({ name, percent }) =>
                     `${name}: ${(percent * 100).toFixed(0)}%`
                   }
-                  outerRadius={80}
+                  outerRadius={90}
                   fill="#8884d8"
                   dataKey="value"
                 >
@@ -340,119 +443,158 @@ const Dashboard = () => {
               {pieData.map((item) => (
                 <div key={item.name} className="flex items-center gap-2">
                   <div
-                    className="w-3 h-3 rounded-full"
+                    className="w-4 h-4 rounded-full shadow-sm"
                     style={{ backgroundColor: item.color }}
                   ></div>
-                  <span className="text-sm text-gray-600">
+                  <span className="text-sm text-gray-600 font-medium">
                     {item.name}: {item.value}
                   </span>
                 </div>
               ))}
             </div>
-          </div>
+          </motion.div>
 
-          {/* Bar Chart - Session Completion */}
-          <div className="card">
-            <h3 className="text-lg font-semibold text-gray-800 mb-4">
+          <motion.div
+            className="card"
+            style={{
+              boxShadow: '0 10px 30px rgba(147, 51, 234, 0.12)',
+            }}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.3 }}
+          >
+            <h3 className="text-xl font-semibold text-gray-800 mb-6">
               Session Completion (This Week)
             </h3>
             <ResponsiveContainer width="100%" height={300}>
               <BarChart data={teacherBarData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="name" />
-                <YAxis />
-                <Tooltip />
+                <CartesianGrid strokeDasharray="3 3" stroke="#E9D5FF" />
+                <XAxis dataKey="name" stroke="#6B7280" />
+                <YAxis stroke="#6B7280" />
+                <Tooltip
+                  contentStyle={{
+                    backgroundColor: "#fff",
+                    border: "1px solid #E9D5FF",
+                    borderRadius: "0.75rem",
+                  }}
+                />
                 <Legend />
-                <Bar dataKey="completed" fill="#0099FF" name="Completed" />
-                <Bar dataKey="scheduled" fill="#E5E7EB" name="Scheduled" />
+                <Bar dataKey="completed" fill="#9333EA" name="Completed" radius={[8, 8, 0, 0]} />
+                <Bar dataKey="scheduled" fill="#E9D5FF" name="Scheduled" radius={[8, 8, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
-          </div>
+          </motion.div>
         </div>
       )}
 
       {/* Recent Activity */}
-      <div className="card">
-        <h3 className="text-lg font-semibold text-gray-800 mb-4">
+      <motion.div
+        className="card"
+        style={{
+          boxShadow: '0 10px 30px rgba(147, 51, 234, 0.12)',
+        }}
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+      >
+        <h3 className="text-xl font-semibold text-gray-800 mb-6">
           Recent Activity
         </h3>
         <div className="space-y-4">
           {isAdmin ? (
             <>
-              <div className="flex items-start gap-3 pb-4 border-b border-gray-100">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Users size={20} className="text-primary" />
+              <motion.div
+                className="flex items-start gap-4 pb-4 border-b border-purple-100 hover:bg-purple-50/50 -mx-6 px-6 py-3 transition-colors rounded-lg"
+                whileHover={{ x: 5 }}
+              >
+                <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-md">
+                  <Users size={20} className="text-white" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-800">
+                  <p className="text-sm font-semibold text-gray-800">
                     Daily attendance marked for all classes
                   </p>
                   <p className="text-xs text-gray-500 mt-1">1 hour ago</p>
                 </div>
-              </div>
-              <div className="flex items-start gap-3 pb-4 border-b border-gray-100">
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <FileText size={20} className="text-orange-600" />
+              </motion.div>
+              <motion.div
+                className="flex items-start gap-4 pb-4 border-b border-purple-100 hover:bg-purple-50/50 -mx-6 px-6 py-3 transition-colors rounded-lg"
+                whileHover={{ x: 5 }}
+              >
+                <div className="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-md">
+                  <FileText size={20} className="text-white" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-800">
+                  <p className="text-sm font-semibold text-gray-800">
                     New notice published: Parent-Teacher Meeting
                   </p>
                   <p className="text-xs text-gray-500 mt-1">3 hours ago</p>
                 </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <BookOpen size={20} className="text-green-600" />
+              </motion.div>
+              <motion.div
+                className="flex items-start gap-4 hover:bg-purple-50/50 -mx-6 px-6 py-3 transition-colors rounded-lg"
+                whileHover={{ x: 5 }}
+              >
+                <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-md">
+                  <BookOpen size={20} className="text-white" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-800">
+                  <p className="text-sm font-semibold text-gray-800">
                     8 sessions completed across all classes
                   </p>
                   <p className="text-xs text-gray-500 mt-1">5 hours ago</p>
                 </div>
-              </div>
+              </motion.div>
             </>
           ) : (
             <>
-              <div className="flex items-start gap-3 pb-4 border-b border-gray-100">
-                <div className="p-2 bg-blue-100 rounded-lg">
-                  <Calendar size={20} className="text-primary" />
+              <motion.div
+                className="flex items-start gap-4 pb-4 border-b border-purple-100 hover:bg-purple-50/50 -mx-6 px-6 py-3 transition-colors rounded-lg"
+                whileHover={{ x: 5 }}
+              >
+                <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl shadow-md">
+                  <Calendar size={20} className="text-white" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-800">
+                  <p className="text-sm font-semibold text-gray-800">
                     Attendance marked for Class 10 A - Mathematics
                   </p>
                   <p className="text-xs text-gray-500 mt-1">2 hours ago</p>
                 </div>
-              </div>
-              <div className="flex items-start gap-3 pb-4 border-b border-gray-100">
-                <div className="p-2 bg-green-100 rounded-lg">
-                  <BookOpen size={20} className="text-green-600" />
+              </motion.div>
+              <motion.div
+                className="flex items-start gap-4 pb-4 border-b border-purple-100 hover:bg-purple-50/50 -mx-6 px-6 py-3 transition-colors rounded-lg"
+                whileHover={{ x: 5 }}
+              >
+                <div className="p-3 bg-gradient-to-br from-green-500 to-green-600 rounded-xl shadow-md">
+                  <BookOpen size={20} className="text-white" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-800">
+                  <p className="text-sm font-semibold text-gray-800">
                     New session created: Mathematics - Algebra
                   </p>
                   <p className="text-xs text-gray-500 mt-1">5 hours ago</p>
                 </div>
-              </div>
-              <div className="flex items-start gap-3">
-                <div className="p-2 bg-orange-100 rounded-lg">
-                  <FileText size={20} className="text-orange-600" />
+              </motion.div>
+              <motion.div
+                className="flex items-start gap-4 hover:bg-purple-50/50 -mx-6 px-6 py-3 transition-colors rounded-lg"
+                whileHover={{ x: 5 }}
+              >
+                <div className="p-3 bg-gradient-to-br from-orange-500 to-orange-600 rounded-xl shadow-md">
+                  <FileText size={20} className="text-white" />
                 </div>
                 <div className="flex-1">
-                  <p className="text-sm font-medium text-gray-800">
+                  <p className="text-sm font-semibold text-gray-800">
                     Assignment uploaded: Chapter 5 Questions
                   </p>
                   <p className="text-xs text-gray-500 mt-1">1 day ago</p>
                 </div>
-              </div>
+              </motion.div>
             </>
           )}
         </div>
-      </div>
-    </div>
+      </motion.div>
+    </motion.div>
   );
 };
 

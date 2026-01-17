@@ -6,7 +6,7 @@ export default function TabLayout() {
     return (
         <Tabs
             screenOptions={{
-                tabBarActiveTintColor: '#2196F3',
+                tabBarActiveTintColor: '#9333EA',
                 tabBarInactiveTintColor: '#9CA3AF',
                 tabBarStyle: {
                     backgroundColor: '#FFFFFF',
@@ -17,12 +17,12 @@ export default function TabLayout() {
                     paddingHorizontal: 20,
                     borderTopLeftRadius: 20,
                     borderTopRightRadius: 20,
-                    shadowColor: '#000',
+                    shadowColor: '#9333EA',
                     shadowOffset: {
                         width: 0,
                         height: -2,
                     },
-                    shadowOpacity: 0.1,
+                    shadowOpacity: 0.15,
                     shadowRadius: 8,
                     elevation: 10,
                 },
@@ -35,11 +35,28 @@ export default function TabLayout() {
             }}
         >
             <Tabs.Screen
+                name="dashboard"
+                options={{
+                    title: 'Dashboard',
+                    tabBarIcon: ({ color, size, focused }) => (
+                        <Ionicons
+                            name={focused ? "analytics" : "analytics-outline"}
+                            size={size}
+                            color={color}
+                        />
+                    ),
+                }}
+            />
+            <Tabs.Screen
                 name="home"
                 options={{
                     title: 'Home',
                     tabBarIcon: ({ color, size, focused }) => (
-                        <Ionicons name={focused ? "home" : "home-outline"} size={size} color={color} />
+                        <Ionicons
+                            name={focused ? "home" : "home-outline"}
+                            size={size}
+                            color={color}
+                        />
                     ),
                 }}
             />
@@ -48,7 +65,11 @@ export default function TabLayout() {
                 options={{
                     title: 'Presence',
                     tabBarIcon: ({ color, size, focused }) => (
-                        <Ionicons name={focused ? "finger-print" : "finger-print-outline"} size={size + 4} color={color} />
+                        <Ionicons
+                            name={focused ? "finger-print" : "finger-print-outline"}
+                            size={size + 4}
+                            color={color}
+                        />
                     ),
                     tabBarIconStyle: {
                         marginTop: -5,
@@ -60,11 +81,14 @@ export default function TabLayout() {
                 options={{
                     title: 'Profile',
                     tabBarIcon: ({ color, size, focused }) => (
-                        <Ionicons name={focused ? "person" : "person-outline"} size={size} color={color} />
+                        <Ionicons
+                            name={focused ? "person" : "person-outline"}
+                            size={size}
+                            color={color}
+                        />
                     ),
                 }}
             />
         </Tabs>
     );
 }
-
